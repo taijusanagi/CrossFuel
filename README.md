@@ -9,19 +9,23 @@ This is the 2023 ETH Denver submission repository
 
 ## How it works
 
-Service Name> leverages a range of third-party services to provide a seamless and secure user experience. The core of the service is built on top of zkSync, and uses the following third-party services to enable multichain support, token bridging, and token swapping.
+<Service Name> leverages a range of third-party services to provide a seamless and secure user experience. The core of the service is built on top of zkSync, and uses the following third-party services to enable multichain support, token bridging, and token swapping.
+
+![how-it-works](./docs/how-it-works.jpg)
 
 ### Metamask Snap
 Metamask Snap is an extension function of the Metamask that enables the addition of the Account Abstraction function to Metamask.
 
 ### Defender
-Defender is used to sign backend transactions and can automate certain processes like bridge or swap.
+Defender creates a signature for verifying paymaster contract, and automates multichain deposit syncing.
+
+- [Investigation of Defender](https://github.com/taijusanagi/2023-eth-denver-submission/issues/2)
 
 ### Axeler
-Axeler is used for the multichain token bridge.
+Axeler sends USDC and native tokens to other chains.
 
 ### 1inch
-1inch is used to swap tokens across different chains.
+1inch swaps USDC to a native token.
 
 ### ChainLink
 ChainLink is used to get price data into the blockchain, providing up-to-date information for token swaps.
