@@ -1,5 +1,5 @@
 # 2023-eth-denver-submission
-This is 2023 ETH Denver submission repository
+This is the 2023 ETH Denver submission repository
 
 <Key visual image comes here>
 
@@ -7,26 +7,30 @@ This is 2023 ETH Denver submission repository
 
 <Service Name> provides a seamless and secure user experience by leveraging a range of third-party services. The core of the service is built on top of zkSync, and uses the following third-party services to enable multichain support, token bridging, and token swapping:
 
-Metamask Snap
-This is an extension function of the Metamask wallet that enables the addition of the Account Abstraction function to Metamask.
+## How it works
 
-Defender
-This service is used to sign backend transactions and can automate certain processes like bridge or swap.
+Service Name> leverages a range of third-party services to provide a seamless and secure user experience. The core of the service is built on top of zkSync, and uses the following third-party services to enable multichain support, token bridging, and token swapping.
 
-Axeler
-This cross-chain messaging protocol is used for the multichain token bridge.
+### Metamask Snap
+Metamask Snap is an extension function of the Metamask that enables the addition of the Account Abstraction function to Metamask.
 
-1inch
-This token swap aggregator is used to swap tokens across different chains.
+### Defender
+Defender is used to sign backend transactions and can automate certain processes like bridge or swap.
 
-ChainLink
-This service is used to get price data into the blockchain, providing up-to-date information for token swaps.
+### Axeler
+Axeler is used for the multichain token bridge.
 
-Truffle
-This is a core developer in our team and provides a starter kit for Metamask Snap.
+### 1inch
+1inch is used to swap tokens across different chains.
 
-Infura
-This is a multichain node service.
+### ChainLink
+ChainLink is used to get price data into the blockchain, providing up-to-date information for token swaps.
+
+### Truffle
+Truffle is a core developer in our team and provides a starter kit for Metamask Snap.
+
+### Infura
+Infura is a multichain node service that is used to deploy multichain contracts
 
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without having to worry about the complexities of managing tokens across different chains.
 
