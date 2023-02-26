@@ -1,13 +1,14 @@
-import { BigNumber, BigNumberish } from 'ethers'
+import { BigNumber, BigNumberish } from "ethers";
 import {
   SimpleAccount,
-  SimpleAccount__factory, SimpleAccountFactory,
-  SimpleAccountFactory__factory
-} from '@account-abstraction/contracts'
+  SimpleAccount__factory,
+  SimpleAccountFactory,
+  SimpleAccountFactory__factory,
+} from "@account-abstraction/contracts";
 
-import { arrayify, hexConcat } from 'ethers/lib/utils'
-import { Signer } from '@ethersproject/abstract-signer'
-import { BaseApiParams, BaseAccountAPI } from './BaseAccountAPI'
+import { arrayify, hexConcat } from "ethers/lib/utils";
+import { Signer } from "@ethersproject/abstract-signer";
+import { BaseApiParams, BaseAccountAPI } from "./BaseAccountAPI";
 
 /**
  * constructor params, added no top of base params:
@@ -16,10 +17,9 @@ import { BaseApiParams, BaseAccountAPI } from './BaseAccountAPI'
  * @param index nonce value used when creating multiple accounts for the same owner
  */
 export interface SimpleAccountApiParams extends BaseApiParams {
-  owner: Signer
-  factoryAddress?: string
-  index?: number
-
+  owner: Signer;
+  factoryAddress?: string;
+  index?: number;
 }
 
 /**
@@ -30,56 +30,56 @@ export interface SimpleAccountApiParams extends BaseApiParams {
  * - execute method is "execFromEntryPoint()"
  */
 export class SimpleAccountAPI extends BaseAccountAPI {
-  factoryAddress?: string
-  owner: Signer
-  index: number
+  factoryAddress?: string;
+  owner: Signer;
+  index: number;
 
   /**
    * our account contract.
    * should support the "execFromEntryPoint" and "nonce" methods
    */
-  accountContract?: SimpleAccount
+  accountContract?: SimpleAccount;
 
-  factory?: SimpleAccountFactory
+  factory?: SimpleAccountFactory;
 
-  constructor (params: SimpleAccountApiParams) {
-    super(params)
-    this.factoryAddress = params.factoryAddress
-    this.owner = params.owner
-    this.index = params.index ?? 0
+  constructor(params: SimpleAccountApiParams) {
+    super(params);
+    this.factoryAddress = params.factoryAddress;
+    this.owner = params.owner;
+    this.index = params.index ?? 0;
   }
 
-  async _getAccountContract (): Promise<SimpleAccount> {
+  async _getAccountContract(): Promise<SimpleAccount> {
     if (this.accountContract == null) {
-      this.accountContract = SimpleAccount__factory.connect(await this.getAccountAddress(), this.provider)
+      this.accountContract = SimpleAccount__factory.connect(await this.getAccountAddress(), this.provider);
     }
-    return this.accountContract
+    return this.accountContract;
   }
 
   /**
    * return the value to put into the "initCode" field, if the account is not yet deployed.
    * this value holds the "factory" address, followed by this account's information
    */
-  async getAccountInitCode (): Promise<string> {
+  async getAccountInitCode(): Promise<string> {
     if (this.factory == null) {
-      if (this.factoryAddress != null && this.factoryAddress !== '') {
-        this.factory = SimpleAccountFactory__factory.connect(this.factoryAddress, this.provider)
+      if (this.factoryAddress != null && this.factoryAddress !== "") {
+        this.factory = SimpleAccountFactory__factory.connect(this.factoryAddress, this.provider);
       } else {
-        throw new Error('no factory to get initCode')
+        throw new Error("no factory to get initCode");
       }
     }
     return hexConcat([
       this.factory.address,
-      this.factory.interface.encodeFunctionData('createAccount', [await this.owner.getAddress(), this.index])
-    ])
+      this.factory.interface.encodeFunctionData("createAccount", [await this.owner.getAddress(), this.index]),
+    ]);
   }
 
-  async getNonce (): Promise<BigNumber> {
+  async getNonce(): Promise<BigNumber> {
     if (await this.checkAccountPhantom()) {
-      return BigNumber.from(0)
+      return BigNumber.from(0);
     }
-    const accountContract = await this._getAccountContract()
-    return await accountContract.nonce()
+    const accountContract = await this._getAccountContract();
+    return await accountContract.nonce();
   }
 
   /**
@@ -88,18 +88,12 @@ export class SimpleAccountAPI extends BaseAccountAPI {
    * @param value
    * @param data
    */
-  async encodeExecute (target: string, value: BigNumberish, data: string): Promise<string> {
-    const accountContract = await this._getAccountContract()
-    return accountContract.interface.encodeFunctionData(
-      'execute',
-      [
-        target,
-        value,
-        data
-      ])
+  async encodeExecute(target: string, value: BigNumberish, data: string): Promise<string> {
+    const accountContract = await this._getAccountContract();
+    return accountContract.interface.encodeFunctionData("execute", [target, value, data]);
   }
 
-  async signUserOpHash (userOpHash: string): Promise<string> {
-    return await this.owner.signMessage(arrayify(userOpHash))
+  async signUserOpHash(userOpHash: string): Promise<string> {
+    return await this.owner.signMessage(arrayify(userOpHash));
   }
 }
