@@ -16,13 +16,15 @@ This is the 2023 ETH Denver submission repository
 ### Metamask Snap
 Metamask Snap is an extension function of the Metamask that enables the addition of the Account Abstraction function to Metamask.
 
+- [Setup and investigation of Metamask Snap with Truffle Box](https://github.com/taijusanagi/2023-eth-denver-submission/issues/3)
+
 ### Defender
 Defender creates a signature for verifying paymaster contract, and automates multichain deposit syncing.
 
 - [Investigation of Defender](https://github.com/taijusanagi/2023-eth-denver-submission/issues/2)
 
-### Axeler
-Axeler sends USDC and native tokens to other chains.
+### Axelar
+Axelar sends USDC and native tokens to other chains.
 
 ### 1inch
 1inch swaps USDC to a native token.
