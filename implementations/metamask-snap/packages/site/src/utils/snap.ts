@@ -61,4 +61,32 @@ export const sendHello = async () => {
   });
 };
 
+export const sendAccountAbstraction = async () => {
+  const eoaAddress = await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'get_eoa_address' },
+    },
+  });
+  console.log('eoaAddress', eoaAddress);
+
+  const aaAddress = await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'get_aa_address' },
+    },
+  });
+  console.log('aaAddress', aaAddress);
+
+  await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'send_aa_tx' },
+    },
+  });
+};
+
 export const isLocalSnap = (snapId: string) => snapId.startsWith('local:');
