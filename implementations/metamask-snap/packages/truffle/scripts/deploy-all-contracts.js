@@ -3,7 +3,8 @@ const { DeterministicDeployer } = require('@account-abstraction/sdk');
 const { ethers } = require('ethers');
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const networks = require('../networks');
-const SimpleAccountFactoryJson = require('../build/SimpleAccountFactory.json');
+const FactoryJson = require('../build/SimpleAccountFactory.json');
+const PaymasterJson = require('../build/VerifyingPaymaster.json');
 
 const fs = require('fs');
 const path = require('path');
@@ -18,21 +19,32 @@ const infuraProjectId = process.env.INFURA_PROJECT_ID;
 // We have added custom logic to enable deployment to multiple chains simultaneously,
 // while ensuring that the deployed address remains consistent across all chains.
 
+// TODO: replace with defender address
+const verifyingPaymasterSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
+
 const main = async () => {
   let entryPointAddress;
   let factoryAddress;
+  let paymasterAddress;
 
   try {
     for (const network of networks) {
       console.log(`Processing on ${network}`);
+
+      // @dev
+      // This requires deploying with creat2 to Multichain, so Truffle migrate cannot be used directly.
+      // However, we attempt to create the same environment as Truffle.
       let hdWalletProvider = new HDWalletProvider({
         mnemonic: {
           phrase: mnemonicPhrase,
         },
         providerOrUrl: `https://${network}.infura.io/v3/${infuraProjectId}`,
       });
-      const providers = new ethers.providers.Web3Provider(hdWalletProvider);
-      const dep = new DeterministicDeployer(providers);
+
+      const provider = new ethers.providers.Web3Provider(hdWalletProvider);
+      const signer =
+        ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
+      const dep = new DeterministicDeployer(provider);
 
       const deployIfNeeded = async (deploymentCode) => {
         const addr = DeterministicDeployer.getAddress(deploymentCode);
@@ -50,17 +62,42 @@ const main = async () => {
       const entryPointDeploymentCode = EntryPoint__factory.bytecode;
       entryPointAddress = await deployIfNeeded(entryPointDeploymentCode);
 
-      console.log('====== SimpleAccountFactory ======');
-      const simpleAccountFactoryDeploymentArgument =
-        ethers.utils.defaultAbiCoder.encode(['address'], [entryPointAddress]);
-      const simpleAccountFactoryDeploymentCode = ethers.utils.solidityPack(
-        ['bytes', 'bytes'],
-        [
-          SimpleAccountFactoryJson.bytecode,
-          simpleAccountFactoryDeploymentArgument,
-        ],
+      console.log('====== Factory ======');
+      const factoryDeploymentArgument = ethers.utils.defaultAbiCoder.encode(
+        ['address'],
+        [entryPointAddress],
       );
-      factoryAddress = await deployIfNeeded(simpleAccountFactoryDeploymentCode);
+      const factoryDeploymentCode = ethers.utils.solidityPack(
+        ['bytes', 'bytes'],
+        [FactoryJson.bytecode, factoryDeploymentArgument],
+      );
+      factoryAddress = await deployIfNeeded(factoryDeploymentCode);
+
+      console.log('====== Paymaster ======');
+      const paymasterDeploymentArgument = ethers.utils.defaultAbiCoder.encode(
+        ['address', 'address'],
+        [entryPointAddress, verifyingPaymasterSigner],
+      );
+      const paymasterDeploymentCode = ethers.utils.solidityPack(
+        ['bytes', 'bytes'],
+        [PaymasterJson.bytecode, paymasterDeploymentArgument],
+      );
+      paymasterAddress = await deployIfNeeded(paymasterDeploymentCode);
+
+      const paymasterContract = new ethers.Contract(
+        paymasterAddress,
+        PaymasterJson.abi,
+        signer,
+      );
+
+      const deposit = await paymasterContract.getDeposit();
+      if (deposit.lt(ethers.utils.parseEther('0.005'))) {
+        console.log('paymaster deposit is too low');
+        await paymasterContract.deposit({
+          value: ethers.utils.parseEther('0.01'),
+        });
+        console.log('depositted');
+      }
     }
 
     fs.writeFileSync(
@@ -68,6 +105,7 @@ const main = async () => {
       JSON.stringify({
         entryPointAddress,
         factoryAddress,
+        paymasterAddress,
       }),
     );
 

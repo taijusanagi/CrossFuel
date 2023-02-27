@@ -1,8 +1,14 @@
 /* eslint-disable no-case-declarations */
+import { UserOperationStruct } from '@account-abstraction/contracts';
+import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, text } from '@metamask/snaps-ui';
 import { ethers } from 'ethers';
-import { HttpRpcClient, SimpleAccountAPI } from '@account-abstraction/sdk';
+import {
+  HttpRpcClient,
+  SimpleAccountAPI,
+  PaymasterAPI,
+} from '@account-abstraction/sdk';
 
 import deployments from '../../truffle/deployments.json';
 
@@ -17,19 +23,44 @@ import deployments from '../../truffle/deployments.json';
  * @throws If the request method is not valid for this snap.
  */
 
-export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
-  // const { entryPointAddress, factoryAddress } = deployments;
+class VerifyingPaymasterAPI extends PaymasterAPI {
+  override async getPaymasterAndData(userOp: Partial<UserOperationStruct>) {
+    const resolvedUserOp = await resolveProperties(userOp);
+    const parsedUserOp = {
+      ...resolvedUserOp,
+      signature: '0x',
+      callGasLimit: resolvedUserOp.callGasLimit?.toString(),
+      nonce: resolvedUserOp.nonce?.toString(),
+      verificationGasLimit: resolvedUserOp.verificationGasLimit?.toString(),
+    };
+    const method = 'POST';
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    const { paymasterAndData } = await fetch('http://localhost:8001/sign', {
+      method,
+      headers,
+      body: JSON.stringify({
+        userOp: parsedUserOp,
+      }),
+    }).then((res) => res.json());
+    return paymasterAndData;
+  }
+}
 
-  const entryPointAddress = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
-  const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
+export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
+  const { entryPointAddress, factoryAddress } = deployments;
 
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const owner = provider.getSigner();
+  const paymasterAPI = new VerifyingPaymasterAPI();
+
   const aa = new SimpleAccountAPI({
     provider,
     entryPointAddress,
     owner,
     factoryAddress,
+    paymasterAPI,
   });
   return aa;
 };
@@ -67,13 +98,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
     case 'send_aa_tx': {
       const target = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
-      const aa = await getAbstractAccount();
-
-      const bundler = new HttpRpcClient(
-        'http://localhost:3000/rpc',
-        '0x0576a174D229E3cFA37253523E645A78A0C91B57',
-        5,
-      );
 
       const snapConfirmResult = await snap.request({
         method: 'snap_confirm',
@@ -90,6 +114,14 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         return null;
       }
 
+      const aa = await getAbstractAccount();
+
+      const bundler = new HttpRpcClient(
+        'http://localhost:3000/rpc',
+        '0x0576a174D229E3cFA37253523E645A78A0C91B57',
+        5,
+      );
+
       const op = await aa.createSignedUserOp({
         target,
         data: '0x',
@@ -97,10 +129,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         maxPriorityFeePerGas: 0x6507a5c0,
       });
 
-      console.log(op);
-
       const sendUserOpToBundlerResult = await bundler.sendUserOpToBundler(op);
-      console.log(sendUserOpToBundlerResult);
       return sendUserOpToBundlerResult;
     }
     default:
