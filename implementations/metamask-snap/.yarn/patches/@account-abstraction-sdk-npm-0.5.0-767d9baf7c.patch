@@ -1,0 +1,12 @@
+diff --git a/dist/src/index.js b/dist/src/index.js
+index 27a22b3f9f987bb6e1c86c348e73925b385fdffd..3eadab2003a94dc035df5d2a5cfa678fe2b50182 100644
+--- a/dist/src/index.js
++++ b/dist/src/index.js
+@@ -1,4 +1,7 @@
+ "use strict";
++
++globalThis.Buffer = require('buffer/').Buffer;
++
+ var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+     if (k2 === undefined) k2 = k;
+     var desc = Object.getOwnPropertyDescriptor(m, k);

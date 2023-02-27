@@ -4,14 +4,14 @@ import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
-  sendAccountAbstraction,
+  sendHello,
   shouldDisplayReconnectButton,
 } from '../utils';
 import {
   ConnectButton,
   InstallFlaskButton,
   ReconnectButton,
-  SendAccountAbstractionButton,
+  SendHelloButton,
   Card,
 } from '../components';
 
@@ -117,9 +117,9 @@ const Index = () => {
     }
   };
 
-  const handleAccountAbstractionClick = async () => {
+  const handleSendHelloClick = async () => {
     try {
-      await sendAccountAbstraction();
+      await sendHello();
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -185,12 +185,12 @@ const Index = () => {
         )}
         <Card
           content={{
-            title: 'Account Abstraction',
+            title: 'Send Hello message',
             description:
-              'Create Account Abstraction transaction with MetaMask.',
+              'Display a custom message within a confirmation screen in MetaMask.',
             button: (
-              <SendAccountAbstractionButton
-                onClick={handleAccountAbstractionClick}
+              <SendHelloButton
+                onClick={handleSendHelloClick}
                 disabled={!state.installedSnap}
               />
             ),

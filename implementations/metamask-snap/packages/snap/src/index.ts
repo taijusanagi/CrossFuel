@@ -1,5 +1,11 @@
+/* eslint-disable no-case-declarations */
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, text } from '@metamask/snaps-ui';
+import { ethers } from 'ethers';
+import { HttpRpcClient, SimpleAccountAPI } from '@account-abstraction/sdk';
+
+const entryPointAddress = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
+const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -11,7 +17,23 @@ import { panel, text } from '@metamask/snaps-ui';
  * @returns The result of `snap_dialog`.
  * @throws If the request method is not valid for this snap.
  */
-export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
+
+export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  const owner = provider.getSigner();
+  const aa = new SimpleAccountAPI({
+    provider,
+    entryPointAddress,
+    owner,
+    factoryAddress,
+  });
+  return aa;
+};
+
+export const onRpcRequest: OnRpcRequestHandler = async ({
+  origin,
+  request,
+}) => {
   switch (request.method) {
     case 'hello':
       return snap.request({
@@ -27,6 +49,56 @@ export const onRpcRequest: OnRpcRequestHandler = ({ origin, request }) => {
           ]),
         },
       });
+    case 'get_eoa_address': {
+      const provider = new ethers.providers.Web3Provider(ethereum as any);
+      const accounts = await provider.send('eth_requestAccounts', []);
+      return accounts[0];
+    }
+
+    case 'get_aa_address': {
+      const aa = await getAbstractAccount();
+      const address = await aa.getAccountAddress();
+      return address;
+    }
+
+    case 'send_aa_tx': {
+      const target = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
+      const aa = await getAbstractAccount();
+
+      const bundler = new HttpRpcClient(
+        'http://localhost:3000/rpc',
+        '0x0576a174D229E3cFA37253523E645A78A0C91B57',
+        5,
+      );
+
+      const snapConfirmResult = await snap.request({
+        method: 'snap_confirm',
+        params: [
+          {
+            prompt: 'Transfer',
+            description: 'Transfer from your Abstraction Account',
+            textAreaContent: `target: ${target}`,
+          },
+        ],
+      });
+
+      if (!snapConfirmResult) {
+        return null;
+      }
+
+      const op = await aa.createSignedUserOp({
+        target,
+        data: '0x',
+        maxFeePerGas: 0x6507a5d0,
+        maxPriorityFeePerGas: 0x6507a5c0,
+      });
+
+      console.log(op);
+
+      const sendUserOpToBundlerResult = await bundler.sendUserOpToBundler(op);
+      console.log(sendUserOpToBundlerResult);
+      return sendUserOpToBundlerResult;
+    }
     default:
       throw new Error('Method not found.');
   }

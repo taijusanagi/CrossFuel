@@ -98,6 +98,12 @@ export const SendHelloButton = (props: ComponentProps<typeof Button>) => {
   return <Button {...props}>Send message</Button>;
 };
 
+export const SendAccountAbstractionButton = (
+  props: ComponentProps<typeof Button>,
+) => {
+  return <Button {...props}>Call</Button>;
+};
+
 export const HeaderButtons = ({
   state,
   onConnectClick,

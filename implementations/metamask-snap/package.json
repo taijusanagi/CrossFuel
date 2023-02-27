@@ -25,6 +25,9 @@
     "start": "yarn workspaces foreach --parallel --interlaced --verbose run start",
     "test": "echo \"TODO\""
   },
+  "resolutions": {
+    "@account-abstraction/sdk@0.5.0": "patch:@account-abstraction/sdk@npm:0.5.0#.yarn/patches/@account-abstraction-sdk-npm-0.5.0-767d9baf7c.patch"
+  },
   "devDependencies": {
     "@metamask/eslint-config": "^10.0.0",
     "@metamask/eslint-config-jest": "^10.0.0",
