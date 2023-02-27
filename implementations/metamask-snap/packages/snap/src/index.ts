@@ -25,13 +25,17 @@ import deployments from '../../truffle/deployments.json';
 
 class VerifyingPaymasterAPI extends PaymasterAPI {
   override async getPaymasterAndData(userOp: Partial<UserOperationStruct>) {
+    console.log('getPaymasterAndData', userOp);
+
     const resolvedUserOp = await resolveProperties(userOp);
     const parsedUserOp = {
       ...resolvedUserOp,
-      signature: '0x',
-      callGasLimit: resolvedUserOp.callGasLimit?.toString(),
-      nonce: resolvedUserOp.nonce?.toString(),
-      verificationGasLimit: resolvedUserOp.verificationGasLimit?.toString(),
+      // nonce: resolvedUserOp.nonce?.toString(),
+      // callGasLimit: resolvedUserOp.callGasLimit?.toString(),
+      // maxFeePerGas: resolvedUserOp.maxFeePerGas?.toString(),
+      // maxPriorityFeePerGas: resolvedUserOp.maxPriorityFeePerGas?.toString(),
+      // verificationGasLimit: resolvedUserOp.verificationGasLimit?.toString(),
+      // preVerificationGas: '50000',
     };
     const method = 'POST';
     const headers = {
@@ -48,12 +52,13 @@ class VerifyingPaymasterAPI extends PaymasterAPI {
   }
 }
 
+const paymasterAPI = new VerifyingPaymasterAPI();
+
 export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
   const { entryPointAddress, factoryAddress } = deployments;
 
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const owner = provider.getSigner();
-  const paymasterAPI = new VerifyingPaymasterAPI();
 
   const aa = new SimpleAccountAPI({
     provider,
@@ -122,14 +127,21 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         5,
       );
 
-      const op = await aa.createSignedUserOp({
+      const op1 = await aa.createSignedUserOp({
         target,
         data: '0x',
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
       });
 
-      const sendUserOpToBundlerResult = await bundler.sendUserOpToBundler(op);
+      const resolvedUserOp1 = await resolveProperties(op1);
+      console.log('resolvedUserOp1', resolvedUserOp1);
+      resolvedUserOp1.preVerificationGas = 45724;
+      resolvedUserOp1.paymasterAndData = await paymasterAPI.getPaymasterAndData(
+        resolvedUserOp1,
+      );
+      const op2 = await aa.signUserOp(resolvedUserOp1);
+      const sendUserOpToBundlerResult = await bundler.sendUserOpToBundler(op2);
       return sendUserOpToBundlerResult;
     }
     default:

@@ -98,6 +98,7 @@ const main = async () => {
         });
         console.log('depositted');
       }
+      // await paymaster.addStake(1, { value: parseEther('2') })
     }
 
     fs.writeFileSync(

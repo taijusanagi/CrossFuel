@@ -172,6 +172,8 @@ export class UserOpMethodHandler {
         userOp.nonce
       )} EntryPoint=${entryPointInput} Paymaster=${getAddr(userOp.paymasterAndData)}`
     );
+    userOp.preVerificationGas = "0xb29c";
+    console.log("bundler userOp", userOp);
     await this.execManager.sendUserOperation(userOp, entryPointInput);
     return await this.entryPoint.getUserOpHash(userOp);
   }
