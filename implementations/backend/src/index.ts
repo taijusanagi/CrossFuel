@@ -28,17 +28,34 @@ app.post("/sign", async (req: Request, res: Response) => {
   const blockNumber = await provider.getBlockNumber();
   const block = await provider.getBlock(blockNumber);
   const { timestamp } = block;
-  const validAfter = timestamp;
   const validUntil = timestamp + 1800;
+  const validAfter = timestamp;
   const paymasterAndData = await paymasterContract
     .getHash({ signature: "0x", ...userOp }, validUntil, validAfter)
     .then(async (hash: string) => {
       const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
+
+      console.log("signer");
+      console.log(await signer.getAddress());
+
       const signature = await signer.signMessage(hash);
-      const paymasterAndData = ethers.utils.solidityPack(
-        ["address", "uint48", "uint48", "bytes"],
-        [paymasterAddress, validUntil, validAfter, signature]
+
+      const parsePaymasterAndDataWithoutAddressAndSignature = ethers.utils.defaultAbiCoder.encode(
+        ["uint48", "uint48"],
+        [validUntil, validAfter]
       );
+
+      const paymasterAndData = ethers.utils.solidityPack(
+        ["address", "bytes", "bytes"],
+        [paymasterAddress, parsePaymasterAndDataWithoutAddressAndSignature, signature]
+      );
+
+      const data = await paymasterContract.parsePaymasterAndData(paymasterAndData).catch((e) => {
+        console.log(e);
+        return "";
+      });
+      console.log("parse", data);
+
       return paymasterAndData;
     })
     .catch(() => {
