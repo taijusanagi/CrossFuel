@@ -4,8 +4,7 @@ import { panel, text } from '@metamask/snaps-ui';
 import { ethers } from 'ethers';
 import { HttpRpcClient, SimpleAccountAPI } from '@account-abstraction/sdk';
 
-const entryPointAddress = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
-const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
+import deployments from '../../truffle/deployments.json';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -19,6 +18,11 @@ const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
  */
 
 export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
+  // const { entryPointAddress, factoryAddress } = deployments;
+
+  const entryPointAddress = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
+  const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
+
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const owner = provider.getSigner();
   const aa = new SimpleAccountAPI({

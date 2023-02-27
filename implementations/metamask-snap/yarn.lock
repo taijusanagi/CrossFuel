@@ -5,7 +5,7 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@account-abstraction/contracts@npm:^0.5.0":
+"@account-abstraction/contracts@npm:0.5.0, @account-abstraction/contracts@npm:^0.5.0":
   version: 0.5.0
   resolution: "@account-abstraction/contracts@npm:0.5.0"
   checksum: 792a82e9ac3dac2d0c6b92133998b567acfc980aea6bb6d51377d95039a2a4c8cbd764c02ebe4d16ea7f7e18ff0724a0ae41970ba2b1bbcaf89e9bf875806ec5
@@ -4213,7 +4213,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openzeppelin/contracts@npm:^4.7.3":
+"@openzeppelin/contracts@npm:^4.7.3, @openzeppelin/contracts@npm:^4.8.1":
   version: 4.8.1
   resolution: "@openzeppelin/contracts@npm:4.8.1"
   checksum: 99acefde1ae42c2d935ec9b4ebd327e786c499a4ec76b9582eb9adb0ff94a77c48047332fba44fb97b82b5a46d80e74d3e5d8cf73d5defa7f746f2a67f070281
@@ -19107,6 +19107,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "truffle@workspace:packages/truffle"
   dependencies:
+    "@account-abstraction/contracts": 0.5.0
+    "@openzeppelin/contracts": ^4.8.1
     "@truffle/hdwallet-provider": ^2.1.1
     dotenv: ^16.0.3
     ganache: ^7.5.0
