@@ -29,31 +29,21 @@ app.post("/sign", async (req: Request, res: Response) => {
   const block = await provider.getBlock(blockNumber);
   const { timestamp } = block;
 
-  const MOCK_VALID_UNTIL = "0x00000000deadbeef";
-  const MOCK_VALID_AFTER = "0x0000000000001234";
-
-  // const validUntil = timestamp + 1800;
-  // const validAfter = timestamp;
-  const validUntil = MOCK_VALID_UNTIL;
-  const validAfter = MOCK_VALID_AFTER;
+  const validUntil = timestamp + 1800;
+  const validAfter = timestamp;
 
   const parsePaymasterAndDataWithoutAddressAndSignature = ethers.utils.defaultAbiCoder.encode(
     ["uint48", "uint48"],
     [validUntil, validAfter]
   );
 
-  console.log("before create paymaster data");
-  console.log(userOp);
-
-  if (!userOp.signature) {
-    console.log("1st");
+  if (userOp.paymasterAndData == "0x") {
     const paymasterAndData = ethers.utils.hexConcat(
       // ["address", "bytes", "bytes"],
       [paymasterAddress, parsePaymasterAndDataWithoutAddressAndSignature, "0x" + "00".repeat(65)]
     );
     res.send({ paymasterAndData });
   } else {
-    console.log("2nd");
     const paymasterAndData = await paymasterContract
       .getHash(userOp, validUntil, validAfter)
       .then(async (hash: string) => {

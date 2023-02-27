@@ -172,8 +172,10 @@ export class UserOpMethodHandler {
         userOp.nonce
       )} EntryPoint=${entryPointInput} Paymaster=${getAddr(userOp.paymasterAndData)}`
     );
-    userOp.preVerificationGas = "0xb29c";
-    console.log("bundler userOp", userOp);
+
+    // @dev: This is fix preVerificationGas too low bug
+    // https://github.com/eth-infinitism/bundler/pull/7
+    userOp.preVerificationGas = "0x186a0";
     await this.execManager.sendUserOperation(userOp, entryPointInput);
     return await this.entryPoint.getUserOpHash(userOp);
   }

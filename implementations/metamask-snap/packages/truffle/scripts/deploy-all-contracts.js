@@ -91,10 +91,10 @@ const main = async () => {
       );
 
       const deposit = await paymasterContract.getDeposit();
-      if (deposit.lt(ethers.utils.parseEther('0.005'))) {
+      if (deposit.lt(ethers.utils.parseEther('0.02'))) {
         console.log('paymaster deposit is too low');
         await paymasterContract.deposit({
-          value: ethers.utils.parseEther('0.01'),
+          value: ethers.utils.parseEther('0.03'),
         });
         console.log('depositted');
       }
