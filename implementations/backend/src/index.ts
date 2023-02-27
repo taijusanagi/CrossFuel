@@ -37,25 +37,30 @@ app.post("/sign", async (req: Request, res: Response) => {
     [validUntil, validAfter]
   );
 
-  if (userOp.paymasterAndData == "0x") {
-    const paymasterAndData = ethers.utils.hexConcat(
-      // ["address", "bytes", "bytes"],
-      [paymasterAddress, parsePaymasterAndDataWithoutAddressAndSignature, "0x" + "00".repeat(65)]
-    );
+  // @dev: firstly, let user sign user operation without paymaster signature
+  if (!userOp.signature) {
+    const paymasterAndData = ethers.utils.hexConcat([
+      paymasterAddress,
+      parsePaymasterAndDataWithoutAddressAndSignature,
+      "0x" + "00".repeat(65),
+    ]);
     res.send({ paymasterAndData });
   } else {
+    // @dev: secondly, paymaster sign user operation with user signature, then user sign with user operation with paymaster signature
     const paymasterAndData = await paymasterContract
       .getHash(userOp, validUntil, validAfter)
       .then(async (hash: string) => {
         const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
         const signature = await signer.signMessage(ethers.utils.arrayify(hash));
-        const paymasterAndData = ethers.utils.hexConcat(
-          // ["address", "bytes", "bytes"],
-          [paymasterAddress, parsePaymasterAndDataWithoutAddressAndSignature, signature]
-        );
+        const paymasterAndData = ethers.utils.hexConcat([
+          paymasterAddress,
+          parsePaymasterAndDataWithoutAddressAndSignature,
+          signature,
+        ]);
         return paymasterAndData;
       })
-      .catch(() => {
+      .catch((e: Error) => {
+        console.error(e.message);
         return "0x";
       });
     res.send({ paymasterAndData });
