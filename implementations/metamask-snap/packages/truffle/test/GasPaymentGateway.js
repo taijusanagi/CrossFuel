@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { ethers } = require('ethers');
 const { BigNumber } = ethers;
 
 const GasPaymentGateway = artifacts.require('GasPaymentGateway');
@@ -7,7 +7,7 @@ const MockOneInchAggregator = artifacts.require('MockOneInchAggregator');
 const MockChainlinkAggregator = artifacts.require('MockChainlinkAggregator');
 const MockAxelarGasService = artifacts.require('MockAxelarGasService');
 const MockAxelarGateway = artifacts.require('MockAxelarGateway');
-const MockERC20 = artifacts.require('MockERC20');
+const MockERC20 = artifacts.require('ERC20');
 
 contract('GasPaymentGateway', function ([owner, gasPaymentRecipient, user]) {
   const DEFAULT_DECIMALS = 18;

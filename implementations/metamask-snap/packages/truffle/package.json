@@ -5,6 +5,7 @@
   "license": "(MIT-0 OR Apache-2.0)",
   "scripts": {
     "deploy": "truffle compile && node ./scripts/deploy-all-contracts.js",
+    "start": "node scripts/ganache.js",
     "test": "truffle test"
   },
   "dependencies": {
@@ -14,6 +15,7 @@
     "@truffle/hdwallet-provider": "^2.1.1"
   },
   "devDependencies": {
+    "chai": "^4.3.7",
     "dotenv": "^16.0.3",
     "ganache": "^7.5.0"
   }
