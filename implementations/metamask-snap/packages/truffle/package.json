@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@account-abstraction/contracts": "0.5.0",
+    "@axelar-network/axelar-gmp-sdk-solidity": "^3.2.1",
     "@openzeppelin/contracts": "^4.8.1",
     "@truffle/hdwallet-provider": "^2.1.1"
   },
