@@ -38,13 +38,12 @@ Axelar sends USDC and native tokens to other chains.
 
 ChainLink is used to get price data into the blockchain, providing up-to-date information for token swaps.
 
-### Truffle
+### Infura & Truffle
 
-Truffle is a core developer in our team and provides a starter kit for Metamask Snap.
+Infura is a multichain node service that is used to deploy multichain contracts.
+And Truffle is a core developer in our team and provides a starter kit for Metamask Snap.
 
-### Infura
-
-Infura is a multichain node service that is used to deploy multichain contracts
+https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/docs/infura-truffle.md
 
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without having to worry about the complexities of managing tokens across different chains.
 
