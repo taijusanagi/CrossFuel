@@ -11,7 +11,7 @@ import {
 } from '@account-abstraction/sdk';
 
 import deployments from '../../truffle/deployments.json';
-// import MockERC20Json from '../../truffle/build/MockERC20.json';
+import MockERC20Json from '../../truffle/build/MockERC20.json';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -31,6 +31,27 @@ const bundlerUrls = {
 };
 type ChainId = keyof typeof bundlerUrls;
 
+// TODO: replace with defender address
+const verifyingPaymasterSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
+
+const isChainId = (value: string): value is ChainId => {
+  return Object.keys(bundlerUrls).includes(value);
+};
+
+const getProvider = () => {
+  return new ethers.providers.Web3Provider(ethereum as any);
+};
+
+const getChainId = async (): Promise<ChainId> => {
+  const provider = getProvider();
+  const { chainId } = await provider.getNetwork();
+  const chainIdString = chainId.toString();
+  if (!isChainId(chainIdString)) {
+    throw new Error(`Invalid chain ID: ${chainId}`);
+  }
+  return chainIdString;
+};
+
 class VerifyingPaymasterAPI extends PaymasterAPI {
   override async getPaymasterAndData(userOp: Partial<UserOperationStruct>) {
     console.log('VerifyingPaymasterAPI - getPaymasterAndData');
@@ -39,10 +60,7 @@ class VerifyingPaymasterAPI extends PaymasterAPI {
       ...resolvedUserOp,
     };
 
-    const chainId = parseInt(
-      ethereum.chainId ? ethereum.chainId : '',
-      10,
-    ).toString() as ChainId;
+    const chainId = await getChainId();
 
     const method = 'POST';
     const headers = {
@@ -66,7 +84,7 @@ export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
   console.log('getAbstractAccount');
   const { entryPointAddress, factoryAddress } = deployments;
 
-  const provider = new ethers.providers.Web3Provider(ethereum as any);
+  const provider = getProvider();
   const owner = provider.getSigner();
 
   const aa = new SimpleAccountAPI({
@@ -134,10 +152,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         return null;
       }
 
-      const chainId = parseInt(
-        ethereum.chainId ? ethereum.chainId : '',
-        10,
-      ).toString() as ChainId;
+      const chainId = await getChainId();
+
+      console.log('chainId', chainId);
 
       console.log('init aa wallet');
       const aa = await getAbstractAccount();
@@ -145,62 +162,69 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log(aaAccount);
 
       console.log('init aa bundlers');
-      // const gasPaymentChainBundler = new HttpRpcClient(
-      //   bundlerUrls['5'],
-      //   entryPoint,
-      //   5,
-      // );
-
-      const executeChainBundler = new HttpRpcClient(
-        bundlerUrls[chainId],
+      const gasPaymentChainBundler = new HttpRpcClient(
+        bundlerUrls['5'],
         entryPoint,
         5,
       );
 
-      // console.log('process gas payment tx');
-      // const mockERO20 = new ethers.Contract(
-      //   deployments.mockERC20,
-      //   MockERC20Json.abi,
-      // );
+      const executeChainBundler = new HttpRpcClient(
+        bundlerUrls[chainId],
+        entryPoint,
+        parseInt(chainId, 10),
+      );
 
-      // const gasPaymentData = mockERO20.interface.encodeFunctionData(
-      //   'transferFrom',
-      //   [aaAccount, verifyingPaymasterSigner, ethers.utils.parseEther('0.1')],
-      // );
+      console.log('process gas payment tx');
+      const mockERO20 = new ethers.Contract(
+        deployments.mockERC20,
+        MockERC20Json.abi,
+      );
 
-      // console.log('gasPaymentData', gasPaymentData);
+      const gasPaymentData = mockERO20.interface.encodeFunctionData(
+        'transferFrom',
+        [aaAccount, verifyingPaymasterSigner, ethers.utils.parseEther('0.1')],
+      );
 
-      // const gasPaymentOp1 = await aa.createSignedUserOp({
-      //   target: verifyingPaymasterSigner,
-      //   data: gasPaymentData,
-      //   maxFeePerGas: 0x6507a5d0,
-      //   maxPriorityFeePerGas: 0x6507a5c0,
-      // });
+      console.log('gasPaymentData', gasPaymentData);
 
-      // const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
-      // resolveGasPaymentUserOp1.preVerificationGas = 100000;
-      // resolveGasPaymentUserOp1.paymasterAndData =
-      //   await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
-
-      // const gasPaymentOp2 = await aa.signUserOp(resolveGasPaymentUserOp1);
-      // const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
-
-      console.log('process execute tx');
-
-      console.log(target, data);
-
-      const executeOp1 = await aa.createSignedUserOp({
-        target: '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d',
-        data: '0x',
+      const gasPaymentOp1 = await aa.createSignedUserOp({
+        target: verifyingPaymasterSigner,
+        data: gasPaymentData,
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
       });
 
-      console.log('print', executeOp1);
+      const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
+      // @dev: This is fix preVerificationGas too low bug
+      // https://github.com/eth-infinitism/bundler/pull/7
+      resolveGasPaymentUserOp1.preVerificationGas = 100000;
+
+      // some chain call gas limit calculation is wrong
+      resolveGasPaymentUserOp1.callGasLimit = 21828;
+
+      resolveGasPaymentUserOp1.paymasterAndData =
+        await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
+
+      const gasPaymentOp2 = await aa.signUserOp(resolveGasPaymentUserOp1);
+      const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
+
+      console.log('process execute tx', target, data);
+
+      const executeOp1 = await aa.createSignedUserOp({
+        target,
+        data,
+        maxFeePerGas: 0x6507a5d0,
+        maxPriorityFeePerGas: 0x6507a5c0,
+      });
+
       const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
       // @dev: This is fix preVerificationGas too low bug
       // https://github.com/eth-infinitism/bundler/pull/7
       resolvedExecuteUserOp1.preVerificationGas = 100000;
+
+      // some chain call gas limit calculation is wrong
+      resolvedExecuteUserOp1.callGasLimit = 21828;
+
       resolvedExecuteUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
       const executeOp2 = await aa.signUserOp(resolvedExecuteUserOp1);
@@ -208,17 +232,15 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       console.log('send to bundler');
 
-      const sendExecuteUserOpToBundlerResult =
-        await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
+      console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
+      console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
 
-      // const sendGasPaymentUserOpToBundlerResult =
-      //   await gasPaymentChainBundler.sendUserOpToBundler(
-      //     resolvedGasPaymentUserOp2,
-      //   );
+      gasPaymentChainBundler.sendUserOpToBundler(resolvedGasPaymentUserOp2);
+      executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
 
       return {
-        sendExecuteUserOpToBundlerResult,
         // sendGasPaymentUserOpToBundlerResult,
+        // sendExecuteUserOpToBundlerResult,
       };
     }
     default:

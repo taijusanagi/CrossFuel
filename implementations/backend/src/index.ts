@@ -20,8 +20,15 @@ app.use(express.json());
 
 type ChainId = "5" | "80001";
 
+const chainName = {
+  "5": "goerli",
+  "80001": "polygon-mumbai",
+};
+
 const getSignerAndProviderForTargetChain = (chainId: ChainId) => {
-  const provider = new ethers.providers.JsonRpcProvider(`https://goerli.infura.io/v3/${infuraProjectId}`);
+  const provider = new ethers.providers.JsonRpcProvider(
+    `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`
+  );
   const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
   return { provider, signer };
 };
