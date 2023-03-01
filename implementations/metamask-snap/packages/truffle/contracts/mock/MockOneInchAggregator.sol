@@ -1,34 +1,41 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IOneInchAggregator.sol";
+import "./MockERC20.sol";
 
-contract MockOneInchAggregator is IOneInchAggregator {
-    uint256[] public swapAmounts;
-    uint256[] public getExpectedReturnAmounts;
+contract MockOneInchAggregator {
+    uint256 public rate;
+    uint256[] public distribution;
 
-    function setSwap(uint256[] memory amounts) public {
-        swapAmounts = amounts;
+    function setRate(uint256 _rate) public {
+        rate = _rate;
+    }
+
+    function setDistribution(uint256[] memory _distribution) public {
+        distribution = _distribution;
     }
 
     function getExpectedReturn(
         address,
         address,
-        uint256,
+        uint256 amout,
         uint256,
         uint256
     ) public view returns (uint256, uint256[] memory) {
-        return (getExpectedReturnAmounts[0], new uint256[](0));
+        uint256 expectedReturn = amout * rate;
+        return (expectedReturn, distribution);
     }
 
     function swap(
-        address,
-        address,
-        uint256,
-        uint256,
+        address fromToken,
+        address toToken,
+        uint256 amount,
+        uint256 minReturn,
         uint256[] memory,
         uint256
     ) public payable returns (uint256) {
-        return swapAmounts[0];
+        MockERC20(fromToken).transferFrom(msg.sender, address(this), amount);
+        MockERC20(toToken).transfer(msg.sender, minReturn);
+        return minReturn;
     }
 }

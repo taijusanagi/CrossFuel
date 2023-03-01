@@ -2,9 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../interfaces/IChainlinkAggregator.sol";
-
-contract MockChainlinkAggregator is IChainlinkAggregator {
+contract MockChainlinkAggregator {
     int256 private _latestAnswer;
 
     constructor(int256 latestAnswer) {
@@ -14,7 +12,6 @@ contract MockChainlinkAggregator is IChainlinkAggregator {
     function latestRoundData()
         external
         view
-        override
         returns (
             uint256,
             int256 answer,

@@ -1,137 +1,123 @@
 const { expect } = require('chai');
 const { ethers } = require('ethers');
-const { BigNumber } = ethers;
 
+// Import contracts
 const GasPaymentGateway = artifacts.require('GasPaymentGateway');
-const MockOneInchAggregator = artifacts.require('MockOneInchAggregator');
-const MockChainlinkAggregator = artifacts.require('MockChainlinkAggregator');
+
 const MockAxelarGasService = artifacts.require('MockAxelarGasService');
 const MockAxelarGateway = artifacts.require('MockAxelarGateway');
-const MockERC20 = artifacts.require('ERC20');
+const MockChainlinkAggregator = artifacts.require('MockChainlinkAggregator');
+const MockERC20 = artifacts.require('MockERC20');
+const MockOneInchAggregator = artifacts.require('MockOneInchAggregator');
 
-contract('GasPaymentGateway', function ([owner, gasPaymentRecipient, user]) {
-  const DEFAULT_DECIMALS = 18;
-  const DEFAULT_BALANCE = BigNumber.from(10).pow(6 + DEFAULT_DECIMALS);
+contract('GasPaymentGateway', (accounts) => {
+  const GAS_PRICE = ethers.utils.parseUnits('10', 'gwei');
 
-  const MOCK_DESTINATION_CHAIN_ID = 1234;
-  const MOCK_DESTINATION_CHAIN_NATIVE_TOKEN =
-    '0x000000000000000000000000000000000000dead';
-  const MOCK_DESTINATION_CHAIN_NATIVE_TOKEN_SYMBOL = 'DEAD';
+  let gasPaymentGateway;
+  let mockAxelarGasService;
+  let mockAxelarGateway;
+  let mockOneInchAggregator;
+  let mockChainlinkAggregator;
 
-  let oneInchAggregator, chainlinkAggregator, axelarGasService, axelarGateway;
-  let gasPaymentGateway, paymentToken;
-  let mockDestinationChainNativeToken;
+  let destinationChainIds;
+  let destinationChainNativeTokenAddresses;
+  let destinationChainNativeTokenSymbols;
 
-  beforeEach(async function () {
-    oneInchAggregator = await MockOneInchAggregator.new();
-    chainlinkAggregator = await MockChainlinkAggregator.new();
-    axelarGasService = await MockAxelarGasService.new();
-    axelarGateway = await MockAxelarGateway.new();
+  beforeEach(async () => {
+    // Deploy mock contracts
+    mockAxelarGasService = await MockAxelarGasService.new();
+    mockAxelarGateway = await MockAxelarGateway.new();
+    mockOneInchAggregator = await MockOneInchAggregator.new();
+    mockChainlinkAggregator = await MockChainlinkAggregator.new(GAS_PRICE);
+    paymentToken = await MockERC20.new('', '');
+    ethNativeToken = await MockERC20.new('', '');
+    polygonNativeToken = await MockERC20.new('', '');
 
-    paymentToken = await MockERC20.new(
-      'Payment Token',
-      'PAY',
-      DEFAULT_DECIMALS,
-      DEFAULT_BALANCE,
+    destinationChainIds = ['eth', 'polygon'];
+    destinationChainNativeTokenSymbols = {
+      eth: 'ETH',
+      polygon: 'MATIC',
+    };
+    destinationChainNativeTokenAddresses = {
+      eth: ethNativeToken.address,
+      polygon: polygonNativeToken.address,
+    };
+    await mockAxelarGateway.setTokenAddress(
+      destinationChainNativeTokenSymbols.eth,
+      destinationChainNativeTokenAddresses.eth,
     );
-    mockDestinationChainNativeToken = await MockERC20.new(
-      'Mock Token',
-      'MCK',
-      DEFAULT_DECIMALS,
-      DEFAULT_BALANCE,
+    await mockAxelarGateway.setTokenAddress(
+      destinationChainNativeTokenSymbols.polygon,
+      destinationChainNativeTokenAddresses.polygon,
     );
-
+    // Deploy GasPaymentGateway contract
     gasPaymentGateway = await GasPaymentGateway.new(
-      axelarGateway.address,
-      oneInchAggregator.address,
-      chainlinkAggregator.address,
-      ethers.constants.AddressZero,
-      axelarGasService.address,
-      gasPaymentRecipient,
-      [MOCK_DESTINATION_CHAIN_ID],
-      [MOCK_DESTINATION_CHAIN_NATIVE_TOKEN],
-      [MOCK_DESTINATION_CHAIN_NATIVE_TOKEN_SYMBOL],
+      mockAxelarGateway.address,
+      mockOneInchAggregator.address,
+      mockChainlinkAggregator.address,
+      mockAxelarGasService.address,
+      destinationChainIds,
+      Object.values(destinationChainNativeTokenAddresses),
+      Object.values(destinationChainNativeTokenSymbols),
     );
-
-    await paymentToken.transfer(user, DEFAULT_BALANCE.div(10));
-    await paymentToken
-      .connect(user)
-      .approve(gasPaymentGateway.address, DEFAULT_BALANCE.div(20));
   });
 
-  describe('getRequiredPaymentTokenAmountWithDistribution', function () {
-    it('should return required payment token amount with distribution', async function () {
-      const gasWillBeUsed = 100;
-      const paymentTokenAmount = DEFAULT_BALANCE.div(20);
-      const swapAmounts = [0, 0, 0];
-
-      const [expectedReturn, distribution] =
-        await gasPaymentGateway.getRequiredPaymentTokenAmountWithDistribution(
-          MOCK_DESTINATION_CHAIN_ID,
-          gasWillBeUsed,
-          paymentTokenAmount,
-          swapAmounts,
-          paymentToken.address,
-        );
-
-      expect(expectedReturn).to.be.gt(0);
-      expect(distribution.length).to.eq(swapAmounts.length);
-    });
-  });
-
-  describe('swapAndBridge', function () {
-    it('should swap payment token to destination native token and bridge to the destination chain using Axelar gateway', async () => {
-      // Set up mock values
-      const requestId = ethers.utils.formatBytes32String('123');
-      const destinationChainId = 2;
-      const gasWillBeUsed = 100000;
-      const paymentTokenAmount = ethers.utils.parseEther('1');
-      const swapAmounts = [0, 0];
-      const paymentTokenAddress = paymentTokenMock.address;
-      const expectedReturn = ethers.utils.parseEther('10');
-      const distribution = [10000, 0, 0];
-
-      // Set up expected values
-      const destinationNativeToken = destinationNativeTokenMock.address;
-      const destinationChainNativeTokenAmount = ethers.utils.parseEther('1');
-
-      // Mock external function calls
-      chainlinkAggregatorMock.mock.latestRoundData.returns(0, 1000000, 0, 0, 0);
-      oneInchAggregatorMock.mock.getExpectedReturn.returns(
-        expectedReturn,
-        distribution,
-      );
-      oneInchAggregatorMock.mock.swap.returns(
-        destinationChainNativeTokenAmount,
-      );
-
-      // Make the function call
-      await gasPaymentGateway.swapAndBridge(
-        requestId,
+  it('getRequiredPaymentTokenAmountWithDistribution', async function () {
+    const destinationChainId = 'eth';
+    const gasWillBeUsed = ethers.BigNumber.from(100000);
+    const gasPrice = ethers.utils.parseUnits('10', 'gwei');
+    const destribution = [0];
+    const rate = 5;
+    await mockChainlinkAggregator.setLatestAnswer(gasPrice);
+    await mockOneInchAggregator.setDistribution(destribution);
+    await mockOneInchAggregator.setRate(rate);
+    const result =
+      await gasPaymentGateway.getRequiredPaymentTokenAmountWithDistribution(
         destinationChainId,
         gasWillBeUsed,
-        paymentTokenAmount,
-        swapAmounts,
-        paymentTokenAddress,
-        { value: ethers.utils.parseEther('0.1') },
+        paymentToken.address,
+      );
+    expect(result['0'].toString()).to.equal(
+      gasWillBeUsed.mul(gasPrice).mul(rate).toString(),
+    );
+  });
+
+  it('swapAndBridge', async function () {
+    const destinationChainId = 'eth';
+    const gasWillBeUsed = ethers.BigNumber.from(100000);
+    const gasPrice = ethers.utils.parseUnits('10', 'gwei');
+    const destribution = [0];
+    const rate = 5;
+    await mockChainlinkAggregator.setLatestAnswer(gasPrice);
+    await mockOneInchAggregator.setDistribution(destribution);
+    await mockOneInchAggregator.setRate(rate);
+    const getRequiredPaymentTokenAmountWithDistributionResult =
+      await gasPaymentGateway.getRequiredPaymentTokenAmountWithDistribution(
+        destinationChainId,
+        gasWillBeUsed,
+        paymentToken.address,
       );
 
-      // Check the mock contract state
-      expect(paymentTokenMock.mock.allowance).to.have.been.calledWith(
-        gasPaymentGateway.address,
-        oneInchRouterAddress,
-      );
-      expect(destinationNativeTokenMock.mock.approve).to.have.been.calledWith(
-        gatewayMock.address,
-        destinationChainNativeTokenAmount,
-      );
-      expect(gatewayMock.mock.callContractWithToken).to.have.been.calledWith(
-        destinationChainId,
-        gasPaymentRecipient,
-        ethers.utils.defaultAbiCoder.encode(['bytes32'], [requestId]),
-        destinationNativeToken,
-        destinationChainNativeTokenAmount,
-      );
-    });
+    const paymentTokenAmount =
+      getRequiredPaymentTokenAmountWithDistributionResult['0'].toString();
+    const distribution = getRequiredPaymentTokenAmountWithDistributionResult[
+      '1'
+    ].map((v) => v.toString());
+
+    const requestId =
+      '0x0000000000000000000000000000000000000000000000000000000000000001';
+
+    await paymentToken.mint(accounts[0], paymentTokenAmount);
+    await paymentToken.approve(gasPaymentGateway.address, paymentTokenAmount);
+    await ethNativeToken.mint(mockOneInchAggregator.address, gasWillBeUsed);
+
+    await gasPaymentGateway.swapAndBridge(
+      requestId,
+      destinationChainId,
+      gasWillBeUsed,
+      paymentToken.address,
+      paymentTokenAmount,
+      distribution,
+    );
   });
 });

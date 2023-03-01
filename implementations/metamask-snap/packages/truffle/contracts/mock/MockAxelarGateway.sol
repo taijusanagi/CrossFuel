@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface MockAxelarGateway {
-    function tokenAddresses(address token) external view returns (address);
+import "./MockERC20.sol";
 
-    function transferNativeToken(
-        uint256 destinationChainId,
-        address payable recipient,
-        address gasReceiver
-    ) external payable;
+contract MockAxelarGateway {
+    mapping(string => address) public tokenAddresses;
+
+    function setTokenAddress(string memory token, address tokenAddress) public {
+        tokenAddresses[token] = tokenAddress;
+    }
 
     function callContractWithToken(
-        uint256 destinationChainId,
-        address to,
+        string memory destinationChainId,
+        string memory to,
         bytes memory data,
-        address token,
+        string memory token,
         uint256 amount
-    ) external;
+    ) external {
+        MockERC20(tokenAddresses[token]).transferFrom(msg.sender, address(this), amount);
+    }
 }
