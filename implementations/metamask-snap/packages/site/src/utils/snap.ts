@@ -1,5 +1,10 @@
+import { ethers } from 'ethers';
+
 import { defaultSnapOrigin } from '../config';
 import { GetSnapsResponse, Snap } from '../types';
+
+import deployments from '../../../truffle/deployments.json';
+import MockSBTClaimJson from '../../../truffle/build/MockSBTClaim.json';
 
 /**
  * Get the installed snaps in MetaMask.
@@ -95,6 +100,13 @@ export const sendAccountAbstraction = async () => {
   }).then((res) => res.json());
   console.log(message);
 
+  const mockSBTClaim = new ethers.Contract(
+    deployments.mockSBTClaim,
+    MockSBTClaimJson.abi,
+  );
+
+  const claimSBTData = mockSBTClaim.interface.encodeFunctionData('claim', []);
+
   await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
@@ -102,8 +114,8 @@ export const sendAccountAbstraction = async () => {
       request: {
         method: 'send_aa_tx',
         params: {
-          target: '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d',
-          data: '0x',
+          target: deployments.mockSBTClaim,
+          data: claimSBTData,
         },
       },
     },

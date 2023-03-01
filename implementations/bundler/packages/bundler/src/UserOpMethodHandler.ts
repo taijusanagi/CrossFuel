@@ -178,6 +178,7 @@ export class UserOpMethodHandler {
     if (userOp.paymasterAndData) {
       userOp.preVerificationGas = "0x186a0";
     }
+    console.log("userOp", userOp);
     await this.execManager.sendUserOperation(userOp, entryPointInput);
     return await this.entryPoint.getUserOpHash(userOp);
   }

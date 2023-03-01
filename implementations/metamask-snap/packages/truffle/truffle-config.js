@@ -22,6 +22,22 @@ require('dotenv').config();
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const mnemonic = process.env.MNEMONIC_PHRASE;
 
+const infuraUrl = (name) =>
+  `https://${name}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
+
+function getNetwork(url) {
+  return {
+    provider: function () {
+      return new HDWalletProvider(mnemonic, url);
+    },
+    network_id: '*',
+  };
+}
+
+function getInfuraNetwork(name) {
+  return getNetwork(infuraUrl(name));
+}
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -46,6 +62,10 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
     },
+
+    // @dev: to avoid duplicate
+    goerli: getInfuraNetwork('goerli'),
+    'polygon-mumbai': getInfuraNetwork('polygon-mumbai'),
     //
     // An additional network, but with some advanced options…
     // advanced: {
@@ -101,4 +121,9 @@ module.exports = {
   //     }
   //   }
   // }
+  plugins: ['truffle-plugin-verify'],
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_API_KEY,
+    polygonscan: process.env.POLYGONSCAN_API_KEY,
+  },
 };
