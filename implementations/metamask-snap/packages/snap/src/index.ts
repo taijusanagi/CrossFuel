@@ -224,20 +224,21 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log('process gas payment tx');
       currentChainId = gasPaymentChainId;
       const mockERO20 = new ethers.Contract(
-        deployments.mockERC20,
+        deployments.mockERC20Address,
         MockERC20Json.abi,
       );
 
       const gasPaymentData = mockERO20.interface.encodeFunctionData(
-        'transferFrom',
-        [aaAccount, verifyingPaymasterSigner, ethers.utils.parseEther('0.1')],
+        'transfer',
+        [verifyingPaymasterSigner, ethers.utils.parseEther('0.01')],
       );
 
       console.log('gasPaymentData', gasPaymentData);
 
       const gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
-        target: verifyingPaymasterSigner,
+        target: deployments.mockERC20Address,
         data: gasPaymentData,
+        gasLimit: '0x989680', // 10000000 this is required because this transaction will fail by out of gas
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
       });
@@ -292,6 +293,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         await gasPaymentChainBundler.sendUserOpToBundler(
           resolvedGasPaymentUserOp2,
         );
+
       const sendExecuteUserOpToBundlerResult =
         await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
 

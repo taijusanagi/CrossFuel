@@ -13,12 +13,13 @@ const path = require('path');
 require('dotenv').config({});
 
 const mnemonicPhrase = process.env.MNEMONIC_PHRASE;
-const infuraProjectId = process.env.INFURA_PROJECT_ID;
 
 // @dev
 // This is a custom multichain deployer that utilizes a create2 factory.
 // We have added custom logic to enable deployment to multiple chains simultaneously,
 // while ensuring that the deployed address remains consistent across all chains.
+
+const truffle = require('../truffle-config');
 
 // TODO: replace with defender address
 const verifyingPaymasterSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
@@ -27,7 +28,7 @@ const main = async () => {
   let entryPointAddress;
   let factoryAddress;
   let paymasterAddress;
-  let mockERC20;
+  let mockERC20Address;
 
   try {
     for (const network of networks) {
@@ -36,14 +37,10 @@ const main = async () => {
       // @dev
       // This requires deploying with creat2 to Multichain, so Truffle migrate cannot be used directly.
       // However, we attempt to create the same environment as Truffle.
-      let hdWalletProvider = new HDWalletProvider({
-        mnemonic: {
-          phrase: mnemonicPhrase,
-        },
-        providerOrUrl: `https://${network}.infura.io/v3/${infuraProjectId}`,
-      });
+      const provider = new ethers.providers.Web3Provider(
+        truffle.networks[network].provider(),
+      );
 
-      const provider = new ethers.providers.Web3Provider(hdWalletProvider);
       const signer =
         ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
       const dep = new DeterministicDeployer(provider);
@@ -69,6 +66,7 @@ const main = async () => {
         ['address'],
         [entryPointAddress],
       );
+      console.log('factoryDeploymentArgument', factoryDeploymentArgument);
       const factoryDeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
         [FactoryJson.bytecode, factoryDeploymentArgument],
@@ -80,6 +78,7 @@ const main = async () => {
         ['address', 'address'],
         [entryPointAddress, verifyingPaymasterSigner],
       );
+      console.log('paymasterDeploymentArgument', paymasterDeploymentArgument);
       const paymasterDeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
         [PaymasterJson.bytecode, paymasterDeploymentArgument],
@@ -106,11 +105,13 @@ const main = async () => {
         ['string', 'string'],
         ['MockPaymentToken', 'MPT'],
       );
+
+      console.log('mockERC20DeploymentArgument', mockERC20DeploymentArgument);
       const mockERC20DeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
         [MockERC20Json.bytecode, mockERC20DeploymentArgument],
       );
-      mockERC20 = await deployIfNeeded(mockERC20DeploymentCode);
+      mockERC20Address = await deployIfNeeded(mockERC20DeploymentCode);
     }
 
     fs.writeFileSync(
@@ -119,7 +120,7 @@ const main = async () => {
         entryPointAddress,
         factoryAddress,
         paymasterAddress,
-        mockERC20,
+        mockERC20Address,
       }),
     );
 
