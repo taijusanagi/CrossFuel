@@ -25,6 +25,8 @@ const chainName = {
   "80001": "polygon-mumbai",
 };
 
+const gasPaymentChainId = "5";
+
 const getSignerAndProviderForTargetChain = (chainId: ChainId) => {
   const provider = new ethers.providers.JsonRpcProvider(
     `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`
@@ -39,11 +41,11 @@ app.get("/", (req: Request, res: Response) => {
 
 app.post("/faucet", async (req: Request, res: Response) => {
   const { to } = req.body;
-  const { signer } = getSignerAndProviderForTargetChain("5");
+  const { signer } = getSignerAndProviderForTargetChain(gasPaymentChainId);
   const mockERO20 = new ethers.Contract(deployments.mockERC20Address, MockERC20Json.abi, signer);
   const currentBalance = await mockERO20.balanceOf(to);
-  const amount = 1;
-  const threshold = amount / 2;
+  const amount = 99;
+  const threshold = 1;
   if (currentBalance.gte(ethers.utils.parseEther(threshold.toString()))) {
     res.send({
       status: "error",

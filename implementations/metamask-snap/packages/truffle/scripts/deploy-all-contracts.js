@@ -1,11 +1,11 @@
 const { EntryPoint__factory } = require('@account-abstraction/contracts');
 const { DeterministicDeployer } = require('@account-abstraction/sdk');
 const { ethers } = require('ethers');
-const HDWalletProvider = require('@truffle/hdwallet-provider');
 const networks = require('../networks');
 const FactoryJson = require('../build/SimpleAccountFactory.json');
 const PaymasterJson = require('../build/VerifyingPaymaster.json');
 const MockERC20Json = require('../build/MockERC20.json');
+const MockSBTClaimJson = require('../build/MockSBTClaim.json');
 
 const fs = require('fs');
 const path = require('path');
@@ -29,6 +29,7 @@ const main = async () => {
   let factoryAddress;
   let paymasterAddress;
   let mockERC20Address;
+  let mockSBTClaim;
 
   try {
     for (const network of networks) {
@@ -112,6 +113,10 @@ const main = async () => {
         [MockERC20Json.bytecode, mockERC20DeploymentArgument],
       );
       mockERC20Address = await deployIfNeeded(mockERC20DeploymentCode);
+
+      console.log('====== Mock SBT Claim ======');
+      const mockSBTClaimDeploymentCode = MockSBTClaimJson.bytecode;
+      mockSBTClaim = await deployIfNeeded(mockSBTClaimDeploymentCode);
     }
 
     fs.writeFileSync(
@@ -121,6 +126,7 @@ const main = async () => {
         factoryAddress,
         paymasterAddress,
         mockERC20Address,
+        mockSBTClaim,
       }),
     );
 

@@ -22,8 +22,6 @@ require('dotenv').config();
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const mnemonic = process.env.MNEMONIC_PHRASE;
 
-console.log(process.env.MNEMONIC_PHRASE, process.env.INFURA_PROJECT_ID);
-
 const infuraUrl = (name) =>
   `https://${name}.infura.io/v3/${process.env.INFURA_PROJECT_ID}`;
 

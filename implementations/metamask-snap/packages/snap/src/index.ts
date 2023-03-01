@@ -233,12 +233,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         [verifyingPaymasterSigner, ethers.utils.parseEther('0.01')],
       );
 
-      console.log('gasPaymentData', gasPaymentData);
-
       const gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
         target: deployments.mockERC20Address,
         data: gasPaymentData,
-        gasLimit: '0x989680', // 10000000 this is required because this transaction will fail by out of gas
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
       });
