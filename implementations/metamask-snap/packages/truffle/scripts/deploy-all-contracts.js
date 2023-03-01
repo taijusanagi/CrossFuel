@@ -5,6 +5,7 @@ const HDWalletProvider = require('@truffle/hdwallet-provider');
 const networks = require('../networks');
 const FactoryJson = require('../build/SimpleAccountFactory.json');
 const PaymasterJson = require('../build/VerifyingPaymaster.json');
+const MockERC20Json = require('../build/MockERC20.json');
 
 const fs = require('fs');
 const path = require('path');
@@ -26,6 +27,7 @@ const main = async () => {
   let entryPointAddress;
   let factoryAddress;
   let paymasterAddress;
+  let mockERC20;
 
   try {
     for (const network of networks) {
@@ -98,7 +100,17 @@ const main = async () => {
         });
         console.log('depositted');
       }
-      // await paymaster.addStake(1, { value: parseEther('2') })
+
+      console.log('====== Mock ERC20 ======');
+      const mockERC20DeploymentArgument = ethers.utils.defaultAbiCoder.encode(
+        ['string', 'string'],
+        ['MockPaymentToken', 'MPT'],
+      );
+      const mockERC20DeploymentCode = ethers.utils.solidityPack(
+        ['bytes', 'bytes'],
+        [MockERC20Json.bytecode, mockERC20DeploymentArgument],
+      );
+      mockERC20 = await deployIfNeeded(mockERC20DeploymentCode);
     }
 
     fs.writeFileSync(
@@ -107,6 +119,7 @@ const main = async () => {
         entryPointAddress,
         factoryAddress,
         paymasterAddress,
+        mockERC20,
       }),
     );
 

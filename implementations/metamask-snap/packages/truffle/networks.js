@@ -1,1 +1,1 @@
-module.exports = ['goerli'];
+module.exports = ['goerli', 'polygon-mumbai'];
