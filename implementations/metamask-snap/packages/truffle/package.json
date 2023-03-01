@@ -4,15 +4,19 @@
   "private": true,
   "license": "(MIT-0 OR Apache-2.0)",
   "scripts": {
-    "deploy": "truffle deploy",
-    "migrate": "truffle migrate",
+    "deploy": "truffle compile && node ./scripts/deploy-all-contracts.js",
     "start": "node scripts/ganache.js",
-    "test": "truffle test"
+    "test": "truffle test",
+    "test-with-ganache-forked-chain": "WITH_FORKED_GANACHE_FORKED_CHAIN=true truffle test"
   },
   "dependencies": {
+    "@account-abstraction/contracts": "0.5.0",
+    "@axelar-network/axelar-gmp-sdk-solidity": "^3.2.1",
+    "@openzeppelin/contracts": "^4.8.1",
     "@truffle/hdwallet-provider": "^2.1.1"
   },
   "devDependencies": {
+    "chai": "^4.3.7",
     "dotenv": "^16.0.3",
     "ganache": "^7.5.0"
   }

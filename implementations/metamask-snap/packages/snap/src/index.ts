@@ -1,11 +1,17 @@
 /* eslint-disable no-case-declarations */
+import { UserOperationStruct } from '@account-abstraction/contracts';
+import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, text } from '@metamask/snaps-ui';
 import { ethers } from 'ethers';
-import { HttpRpcClient, SimpleAccountAPI } from '@account-abstraction/sdk';
+import {
+  HttpRpcClient,
+  SimpleAccountAPI,
+  PaymasterAPI,
+} from '@account-abstraction/sdk';
 
-const entryPointAddress = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
-const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
+import deployments from '../../truffle/deployments.json';
+// import MockERC20Json from '../../truffle/build/MockERC20.json';
 
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
@@ -18,14 +24,57 @@ const factoryAddress = '0x09c58cf6be8E25560d479bd52B4417d15bCA2845';
  * @throws If the request method is not valid for this snap.
  */
 
+const entryPoint = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
+const bundlerUrls = {
+  '5': 'http://localhost:3000/rpc',
+  '80001': 'http://localhost:3001/rpc',
+};
+type ChainId = keyof typeof bundlerUrls;
+
+class VerifyingPaymasterAPI extends PaymasterAPI {
+  override async getPaymasterAndData(userOp: Partial<UserOperationStruct>) {
+    console.log('VerifyingPaymasterAPI - getPaymasterAndData');
+    const resolvedUserOp = await resolveProperties(userOp);
+    const parsedUserOp = {
+      ...resolvedUserOp,
+    };
+
+    const chainId = parseInt(
+      ethereum.chainId ? ethereum.chainId : '',
+      10,
+    ).toString() as ChainId;
+
+    const method = 'POST';
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    const { paymasterAndData } = await fetch('http://localhost:8001/sign', {
+      method,
+      headers,
+      body: JSON.stringify({
+        userOp: parsedUserOp,
+        chainId,
+      }),
+    }).then((res) => res.json());
+    return paymasterAndData;
+  }
+}
+
+const paymasterAPI = new VerifyingPaymasterAPI();
+
 export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
+  console.log('getAbstractAccount');
+  const { entryPointAddress, factoryAddress } = deployments;
+
   const provider = new ethers.providers.Web3Provider(ethereum as any);
   const owner = provider.getSigner();
+
   const aa = new SimpleAccountAPI({
     provider,
     entryPointAddress,
     owner,
     factoryAddress,
+    paymasterAPI,
   });
   return aa;
 };
@@ -34,6 +83,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
   origin,
   request,
 }) => {
+  console.log('onRpcRequest');
   switch (request.method) {
     case 'hello':
       return snap.request({
@@ -62,15 +112,14 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     }
 
     case 'send_aa_tx': {
-      const target = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
-      const aa = await getAbstractAccount();
+      console.log('send_aa_tx');
 
-      const bundler = new HttpRpcClient(
-        'http://localhost:3000/rpc',
-        '0x0576a174D229E3cFA37253523E645A78A0C91B57',
-        5,
-      );
+      const { target, data } = request.params as {
+        target: string;
+        data: string;
+      };
 
+      console.log('snapConfirmResult');
       const snapConfirmResult = await snap.request({
         method: 'snap_confirm',
         params: [
@@ -81,23 +130,96 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           },
         ],
       });
-
       if (!snapConfirmResult) {
         return null;
       }
 
-      const op = await aa.createSignedUserOp({
-        target,
+      const chainId = parseInt(
+        ethereum.chainId ? ethereum.chainId : '',
+        10,
+      ).toString() as ChainId;
+
+      console.log('init aa wallet');
+      const aa = await getAbstractAccount();
+      const aaAccount = await aa.getAccountAddress();
+      console.log(aaAccount);
+
+      console.log('init aa bundlers');
+      // const gasPaymentChainBundler = new HttpRpcClient(
+      //   bundlerUrls['5'],
+      //   entryPoint,
+      //   5,
+      // );
+
+      const executeChainBundler = new HttpRpcClient(
+        bundlerUrls[chainId],
+        entryPoint,
+        5,
+      );
+
+      // console.log('process gas payment tx');
+      // const mockERO20 = new ethers.Contract(
+      //   deployments.mockERC20,
+      //   MockERC20Json.abi,
+      // );
+
+      // const gasPaymentData = mockERO20.interface.encodeFunctionData(
+      //   'transferFrom',
+      //   [aaAccount, verifyingPaymasterSigner, ethers.utils.parseEther('0.1')],
+      // );
+
+      // console.log('gasPaymentData', gasPaymentData);
+
+      // const gasPaymentOp1 = await aa.createSignedUserOp({
+      //   target: verifyingPaymasterSigner,
+      //   data: gasPaymentData,
+      //   maxFeePerGas: 0x6507a5d0,
+      //   maxPriorityFeePerGas: 0x6507a5c0,
+      // });
+
+      // const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
+      // resolveGasPaymentUserOp1.preVerificationGas = 100000;
+      // resolveGasPaymentUserOp1.paymasterAndData =
+      //   await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
+
+      // const gasPaymentOp2 = await aa.signUserOp(resolveGasPaymentUserOp1);
+      // const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
+
+      console.log('process execute tx');
+
+      console.log(target, data);
+
+      const executeOp1 = await aa.createSignedUserOp({
+        target: '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d',
         data: '0x',
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
       });
 
-      console.log(op);
+      console.log('print', executeOp1);
+      const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
+      // @dev: This is fix preVerificationGas too low bug
+      // https://github.com/eth-infinitism/bundler/pull/7
+      resolvedExecuteUserOp1.preVerificationGas = 100000;
+      resolvedExecuteUserOp1.paymasterAndData =
+        await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
+      const executeOp2 = await aa.signUserOp(resolvedExecuteUserOp1);
+      const resolvedExecuteUserOp2 = await resolveProperties(executeOp2);
 
-      const sendUserOpToBundlerResult = await bundler.sendUserOpToBundler(op);
-      console.log(sendUserOpToBundlerResult);
-      return sendUserOpToBundlerResult;
+      console.log('send to bundler');
+
+      const sendExecuteUserOpToBundlerResult =
+        await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
+
+      // const sendGasPaymentUserOpToBundlerResult =
+      //   await gasPaymentChainBundler.sendUserOpToBundler(
+      //     resolvedGasPaymentUserOp2,
+      //   );
+
+      return {
+        sendExecuteUserOpToBundlerResult,
+        // sendGasPaymentUserOpToBundlerResult,
+      };
     }
     default:
       throw new Error('Method not found.');
