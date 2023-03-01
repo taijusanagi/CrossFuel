@@ -41,7 +41,7 @@ ChainLink is used to get price data into the blockchain, providing up-to-date in
 ### Infura & Truffle
 
 Infura is a multichain node service that is used to deploy multichain contracts.
-And Truffle is a core developer in our team and provides a starter kit for Metamask Snap.
+And Truffle is a core development tool in our team and provides a starter kit for Metamask Snap.
 
 https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/docs/infura-truffle.md
 
