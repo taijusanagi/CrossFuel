@@ -18,13 +18,22 @@ This is the 2023 ETH Denver submission repository
 
 Metamask Snap is an extension function of the Metamask that enables the addition of the Account Abstraction function to Metamask.
 
-- [Setup and investigation of Metamask Snap with Truffle Box](https://github.com/taijusanagi/2023-eth-denver-submission/issues/3)
+[Detail](https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/docs/metamask-snap.md)
+
+### Infura & Truffle
+
+Infura is a multichain node service that is used to deploy multichain contracts.
+And Truffle is a core development tool in our team and provides a starter kit for Metamask Snap.
+
+[Detail](https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/docs/infura-truffle.md)
 
 ### Defender
 
 Defender creates a signature for verifying paymaster contract, and automates multichain deposit syncing.
 
-- [Investigation of Defender](https://github.com/taijusanagi/2023-eth-denver-submission/issues/2)
+### Tenderly
+
+Tenderly enable transaction simulation.
 
 ### Axelar
 
@@ -37,13 +46,6 @@ Axelar sends USDC and native tokens to other chains.
 ### ChainLink
 
 ChainLink is used to get price data into the blockchain, providing up-to-date information for token swaps.
-
-### Infura & Truffle
-
-Infura is a multichain node service that is used to deploy multichain contracts.
-And Truffle is a core development tool in our team and provides a starter kit for Metamask Snap.
-
-https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/docs/infura-truffle.md
 
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without having to worry about the complexities of managing tokens across different chains.
 
