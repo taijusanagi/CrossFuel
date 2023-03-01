@@ -10,9 +10,9 @@ import {
   PaymasterAPI,
 } from '@account-abstraction/sdk';
 
+import { getBIP44AddressKeyDeriver } from '@metamask/key-tree';
 import deployments from '../../truffle/deployments.json';
 import MockERC20Json from '../../truffle/build/MockERC20.json';
-
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
@@ -29,21 +29,29 @@ const bundlerUrls = {
   '5': 'http://localhost:3000/rpc',
   '80001': 'http://localhost:3001/rpc',
 };
+const chainName = {
+  '5': 'goerli',
+  '80001': 'polygon-mumbai',
+};
 type ChainId = keyof typeof bundlerUrls;
+let currentChainId: ChainId | null;
+
+const gasPaymentChainId = '5';
 
 // TODO: replace with defender address
 const verifyingPaymasterSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
+const infuraProjectId = 'eedaad734dce46a4b08816a7f6df0b9b';
 
 const isChainId = (value: string): value is ChainId => {
   return Object.keys(bundlerUrls).includes(value);
 };
 
-const getProvider = () => {
+const getConnectedProvider = () => {
   return new ethers.providers.Web3Provider(ethereum as any);
 };
 
-const getChainId = async (): Promise<ChainId> => {
-  const provider = getProvider();
+const getConnectedChainId = async (): Promise<ChainId> => {
+  const provider = getConnectedProvider();
   const { chainId } = await provider.getNetwork();
   const chainIdString = chainId.toString();
   if (!isChainId(chainIdString)) {
@@ -52,16 +60,51 @@ const getChainId = async (): Promise<ChainId> => {
   return chainIdString;
 };
 
+const getJsonPRCProviderByChainId = (chainId: ChainId) => {
+  return new ethers.providers.JsonRpcProvider(
+    `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`,
+  );
+};
+
+const getSignerFromDerivedPrivateKey = async (chainId?: ChainId) => {
+  // TODO: currently, only supports accounts[0] in metamask default account
+  //       let's think about better private key creation way later
+  const ethereumNode = await snap.request({
+    method: 'snap_getBip44Entropy',
+    params: {
+      coinType: 60, // this is Ethereum type
+    },
+  });
+
+  const derivedEthereumKeyDriver = await getBIP44AddressKeyDeriver(
+    ethereumNode as any,
+  );
+
+  const { privateKey } = await derivedEthereumKeyDriver(0);
+
+  if (!privateKey) {
+    throw new Error('Private key is null or undefined');
+  }
+
+  const signer = new ethers.Wallet(privateKey);
+
+  if (chainId) {
+    const provider = getJsonPRCProviderByChainId(chainId);
+    signer.connect(provider);
+  }
+
+  return signer;
+};
+
 class VerifyingPaymasterAPI extends PaymasterAPI {
   override async getPaymasterAndData(userOp: Partial<UserOperationStruct>) {
     console.log('VerifyingPaymasterAPI - getPaymasterAndData');
+    console.log('currentChainId', currentChainId);
     const resolvedUserOp = await resolveProperties(userOp);
     const parsedUserOp = {
       ...resolvedUserOp,
     };
-
-    const chainId = await getChainId();
-
+    const chainId = currentChainId;
     const method = 'POST';
     const headers = {
       'Content-Type': 'application/json',
@@ -80,12 +123,14 @@ class VerifyingPaymasterAPI extends PaymasterAPI {
 
 const paymasterAPI = new VerifyingPaymasterAPI();
 
-export const getAbstractAccount = async (): Promise<SimpleAccountAPI> => {
+export const getAbstractAccount = async (
+  chainId: ChainId,
+): Promise<SimpleAccountAPI> => {
   console.log('getAbstractAccount');
   const { entryPointAddress, factoryAddress } = deployments;
 
-  const provider = getProvider();
-  const owner = provider.getSigner();
+  const provider = getJsonPRCProviderByChainId(chainId);
+  const owner = await getSignerFromDerivedPrivateKey();
 
   const aa = new SimpleAccountAPI({
     provider,
@@ -118,15 +163,14 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         },
       });
     case 'get_eoa_address': {
-      const provider = new ethers.providers.Web3Provider(ethereum as any);
-      const accounts = await provider.send('eth_requestAccounts', []);
-      return accounts[0];
+      const signer = await getSignerFromDerivedPrivateKey();
+      return await signer.getAddress();
     }
 
     case 'get_aa_address': {
-      const aa = await getAbstractAccount();
-      const address = await aa.getAccountAddress();
-      return address;
+      const chainId = await getConnectedChainId();
+      const connectedAbstractAccount = await getAbstractAccount(chainId);
+      return await connectedAbstractAccount.getAccountAddress();
     }
 
     case 'send_aa_tx': {
@@ -152,14 +196,17 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         return null;
       }
 
-      const chainId = await getChainId();
-
-      console.log('chainId', chainId);
+      const connectedChainId = await getConnectedChainId();
+      console.log('connectedChainId', connectedChainId);
 
       console.log('init aa wallet');
-      const aa = await getAbstractAccount();
-      const aaAccount = await aa.getAccountAddress();
-      console.log(aaAccount);
+      const gasPaymentAbstractAccount = await getAbstractAccount(
+        gasPaymentChainId,
+      );
+      const executeAbstractAccount = await getAbstractAccount(connectedChainId);
+
+      const aaAccount = await executeAbstractAccount.getAccountAddress();
+      console.log('aaAccount', aaAccount);
 
       console.log('init aa bundlers');
       const gasPaymentChainBundler = new HttpRpcClient(
@@ -169,12 +216,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
 
       const executeChainBundler = new HttpRpcClient(
-        bundlerUrls[chainId],
+        bundlerUrls[connectedChainId],
         entryPoint,
-        parseInt(chainId, 10),
+        parseInt(connectedChainId, 10),
       );
 
       console.log('process gas payment tx');
+      currentChainId = gasPaymentChainId;
       const mockERO20 = new ethers.Contract(
         deployments.mockERC20,
         MockERC20Json.abi,
@@ -187,7 +235,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       console.log('gasPaymentData', gasPaymentData);
 
-      const gasPaymentOp1 = await aa.createSignedUserOp({
+      const gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
         target: verifyingPaymasterSigner,
         data: gasPaymentData,
         maxFeePerGas: 0x6507a5d0,
@@ -205,12 +253,14 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       resolveGasPaymentUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
 
-      const gasPaymentOp2 = await aa.signUserOp(resolveGasPaymentUserOp1);
+      const gasPaymentOp2 = await gasPaymentAbstractAccount.signUserOp(
+        resolveGasPaymentUserOp1,
+      );
       const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
 
       console.log('process execute tx', target, data);
-
-      const executeOp1 = await aa.createSignedUserOp({
+      currentChainId = connectedChainId;
+      const executeOp1 = await executeAbstractAccount.createSignedUserOp({
         target,
         data,
         maxFeePerGas: 0x6507a5d0,
@@ -227,20 +277,37 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       resolvedExecuteUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
-      const executeOp2 = await aa.signUserOp(resolvedExecuteUserOp1);
+      const executeOp2 = await executeAbstractAccount.signUserOp(
+        resolvedExecuteUserOp1,
+      );
       const resolvedExecuteUserOp2 = await resolveProperties(executeOp2);
 
       console.log('send to bundler');
+      currentChainId = null;
 
       console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
       console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
 
-      gasPaymentChainBundler.sendUserOpToBundler(resolvedGasPaymentUserOp2);
-      executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
+      const sendGasPaymentUserOpToBundlerResult =
+        await gasPaymentChainBundler.sendUserOpToBundler(
+          resolvedGasPaymentUserOp2,
+        );
+      const sendExecuteUserOpToBundlerResult =
+        await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
+
+      console.log(
+        'sendGasPaymentUserOpToBundlerResult',
+        sendGasPaymentUserOpToBundlerResult,
+      );
+
+      console.log(
+        'sendExecuteUserOpToBundlerResult',
+        sendExecuteUserOpToBundlerResult,
+      );
 
       return {
-        // sendGasPaymentUserOpToBundlerResult,
-        // sendExecuteUserOpToBundlerResult,
+        sendGasPaymentUserOpToBundlerResult,
+        sendExecuteUserOpToBundlerResult,
       };
     }
     default:
