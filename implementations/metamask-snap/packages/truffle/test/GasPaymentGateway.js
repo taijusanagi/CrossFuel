@@ -4,6 +4,7 @@ const { ethers } = require('ethers');
 // Import contracts
 const GasPaymentGateway = artifacts.require('GasPaymentGateway');
 
+const IChainlinkAggregator = artifacts.require('IChainlinkAggregator');
 const MockAxelarGasService = artifacts.require('MockAxelarGasService');
 const MockAxelarGateway = artifacts.require('MockAxelarGateway');
 const MockChainlinkAggregator = artifacts.require('MockChainlinkAggregator');
@@ -23,6 +24,12 @@ contract('GasPaymentGateway', (accounts) => {
   let destinationChainNativeTokenAddresses;
   let destinationChainNativeTokenSymbols;
 
+  //@dev
+  //if WITH_FORKED_GANACHE_FORKED_CHAIN is true, use mainnet contract instead of mock contract
+
+  const fastGasGweiChainlinkOracleAddressOnMainnet =
+    '0x169e633a2d1e6c10dd91238ba11c4a708dfef37c';
+
   beforeEach(async () => {
     // Deploy mock contracts
     mockAxelarGasService = await MockAxelarGasService.new();
@@ -32,7 +39,6 @@ contract('GasPaymentGateway', (accounts) => {
     paymentToken = await MockERC20.new('', '');
     ethNativeToken = await MockERC20.new('', '');
     polygonNativeToken = await MockERC20.new('', '');
-
     destinationChainIds = ['eth', 'polygon'];
     destinationChainNativeTokenSymbols = {
       eth: 'ETH',
@@ -50,12 +56,25 @@ contract('GasPaymentGateway', (accounts) => {
       destinationChainNativeTokenSymbols.polygon,
       destinationChainNativeTokenAddresses.polygon,
     );
+
+    const addresses =
+      process.env.WITH_FORKED_GANACHE_FORKED_CHAIN === 'true'
+        ? [
+            mockAxelarGateway.address,
+            mockOneInchAggregator.address,
+            fastGasGweiChainlinkOracleAddressOnMainnet,
+            mockAxelarGasService.address,
+          ]
+        : [
+            mockAxelarGateway.address,
+            mockOneInchAggregator.address,
+            mockChainlinkAggregator.address,
+            mockAxelarGasService.address,
+          ];
+
     // Deploy GasPaymentGateway contract
     gasPaymentGateway = await GasPaymentGateway.new(
-      mockAxelarGateway.address,
-      mockOneInchAggregator.address,
-      mockChainlinkAggregator.address,
-      mockAxelarGasService.address,
+      ...addresses,
       destinationChainIds,
       Object.values(destinationChainNativeTokenAddresses),
       Object.values(destinationChainNativeTokenSymbols),
@@ -65,10 +84,21 @@ contract('GasPaymentGateway', (accounts) => {
   it('getRequiredPaymentTokenAmountWithDistribution', async function () {
     const destinationChainId = 'eth';
     const gasWillBeUsed = ethers.BigNumber.from(100000);
-    const gasPrice = ethers.utils.parseUnits('10', 'gwei');
+    let gasPrice;
+    if (process.env.WITH_FORKED_GANACHE_FORKED_CHAIN !== 'true') {
+      gasPrice = ethers.utils.parseUnits('10', 'gwei');
+      await mockChainlinkAggregator.setLatestAnswer(gasPrice);
+    } else {
+      const chainlinkAggregator = await IChainlinkAggregator.at(
+        fastGasGweiChainlinkOracleAddressOnMainnet,
+      );
+      const result = await chainlinkAggregator.latestRoundData();
+      gasPrice = result[1].toString();
+    }
+
     const destribution = [0];
     const rate = 5;
-    await mockChainlinkAggregator.setLatestAnswer(gasPrice);
+
     await mockOneInchAggregator.setDistribution(destribution);
     await mockOneInchAggregator.setRate(rate);
     const result =
@@ -85,7 +115,19 @@ contract('GasPaymentGateway', (accounts) => {
   it('swapAndBridge', async function () {
     const destinationChainId = 'eth';
     const gasWillBeUsed = ethers.BigNumber.from(100000);
-    const gasPrice = ethers.utils.parseUnits('10', 'gwei');
+
+    let gasPrice;
+    if (process.env.WITH_FORKED_GANACHE_FORKED_CHAIN !== 'true') {
+      gasPrice = ethers.utils.parseUnits('10', 'gwei');
+      await mockChainlinkAggregator.setLatestAnswer(gasPrice);
+    } else {
+      const chainlinkAggregator = await IChainlinkAggregator.at(
+        fastGasGweiChainlinkOracleAddressOnMainnet,
+      );
+      const result = await chainlinkAggregator.latestRoundData();
+      gasPrice = result[1].toString();
+    }
+
     const destribution = [0];
     const rate = 5;
     await mockChainlinkAggregator.setLatestAnswer(gasPrice);
