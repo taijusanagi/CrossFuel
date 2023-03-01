@@ -6,6 +6,8 @@ import { ethers } from "ethers";
 import deployments from "../../metamask-snap/packages/truffle/deployments.json";
 import PaymasterJson from "../../metamask-snap/packages/truffle/build/VerifyingPaymaster.json";
 
+import MockERC20Json from "../../metamask-snap/packages/truffle/build/MockERC20.json";
+
 dotenv.config();
 
 const port = process.env.PORT || "8001";
@@ -16,14 +18,41 @@ const app: Express = express();
 app.use(cors());
 app.use(express.json());
 
+type ChainId = "5" | "80001";
+
+const getSignerAndProviderForTargetChain = (chainId: ChainId) => {
+  const provider = new ethers.providers.JsonRpcProvider(`https://goerli.infura.io/v3/${infuraProjectId}`);
+  const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
+  return { provider, signer };
+};
+
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello");
 });
 
+app.post("/faucet", async (req: Request, res: Response) => {
+  const { to } = req.body;
+  const { signer } = getSignerAndProviderForTargetChain("5");
+  const mockERO20 = new ethers.Contract(deployments.mockERC20, MockERC20Json.abi, signer);
+  const currentBalance = await mockERO20.balanceOf(to);
+  const amount = 1;
+  const threshold = amount / 2;
+  if (currentBalance.gte(ethers.utils.parseEther(threshold.toString()))) {
+    res.send({
+      status: "error",
+      message: `AA wallet already has enough payment token in Georli`,
+    });
+  } else {
+    const { hash } = await mockERO20.mint(to, ethers.utils.parseEther(amount.toString()));
+    res.send({ status: "success", message: `Georli ${amount} mock payment token is sent to AA wallet: ${hash}` });
+  }
+});
+
 app.post("/sign", async (req: Request, res: Response) => {
-  const { userOp } = req.body;
-  const provider = new ethers.providers.JsonRpcProvider(`https://goerli.infura.io/v3/${infuraProjectId}`);
+  console.log("sign");
+  const { chainId, userOp } = req.body;
   const { paymasterAddress } = deployments;
+  const { provider, signer } = getSignerAndProviderForTargetChain(chainId);
   const paymasterContract = new ethers.Contract(paymasterAddress, PaymasterJson.abi, provider);
   const blockNumber = await provider.getBlockNumber();
   const block = await provider.getBlock(blockNumber);
@@ -50,7 +79,6 @@ app.post("/sign", async (req: Request, res: Response) => {
     const paymasterAndData = await paymasterContract
       .getHash(userOp, validUntil, validAfter)
       .then(async (hash: string) => {
-        const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
         const signature = await signer.signMessage(ethers.utils.arrayify(hash));
         const paymasterAndData = ethers.utils.hexConcat([
           paymasterAddress,

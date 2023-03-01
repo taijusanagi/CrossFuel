@@ -80,11 +80,32 @@ export const sendAccountAbstraction = async () => {
   });
   console.log('aaAddress', aaAddress);
 
+  console.log('call mock payment token faucet in Georli');
+  const method = 'POST';
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  const { message } = await fetch('http://localhost:8001/faucet', {
+    method,
+    headers,
+    body: JSON.stringify({
+      chainId: window.ethereum.chainId,
+      to: aaAddress,
+    }),
+  }).then((res) => res.json());
+  console.log(message);
+
   await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'send_aa_tx' },
+      request: {
+        method: 'send_aa_tx',
+        params: {
+          target: '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d',
+          data: '0x',
+        },
+      },
     },
   });
 };
