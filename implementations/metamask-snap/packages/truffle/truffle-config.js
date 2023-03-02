@@ -38,6 +38,14 @@ function getInfuraNetwork(name) {
   return getNetwork(infuraUrl(name));
 }
 
+const optimizedComilerSettings = {
+  version: '0.8.17',
+  settings: {
+    optimizer: { enabled: true, runs: 1000000 },
+    viaIR: true,
+  },
+};
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -89,15 +97,11 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: '0.8.14', // Fetch exact version from solc-bin (default: truffle's version)
-      // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
-      // settings: {          // See the solidity docs for advice about optimization and evmVersion
-      //  optimizer: {
-      //    enabled: false,
-      //    runs: 200
-      //  },
-      //  evmVersion: "byzantium"
-      // }
+      version: '0.8.17',
+      settings: {
+        optimizer: { enabled: true, runs: 1000000 },
+        viaIR: true,
+      },
     },
   },
 
