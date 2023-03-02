@@ -6,7 +6,7 @@ import {
 } from '@account-abstraction/contracts';
 import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
-import { panel, copyable, text, heading } from '@metamask/snaps-ui';
+import { panel, copyable, text, heading, divider } from '@metamask/snaps-ui';
 
 import { ethers } from 'ethers';
 import {
@@ -339,7 +339,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         },
         body: JSON.stringify({
           /* Simulation Configuration */
-          save: true, // if true simulation is saved and shows up in the dashboard
+          save: false, // if true simulation is saved and shows up in the dashboard
           save_if_fails: false, // if true, reverting simulations show up in the dashboard
           simulation_type: 'full', // full or quick (full is default)
           network_id: gasPaymentChainId, // network to simulate on
@@ -366,7 +366,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         },
         body: JSON.stringify({
           /* Simulation Configuration */
-          save: true, // if true simulation is saved and shows up in the dashboard
+          save: false, // if true simulation is saved and shows up in the dashboard
           save_if_fails: false, // if true, reverting simulations show up in the dashboard
           simulation_type: 'full', // full or quick (full is default)
           network_id: connectedChainId, // network to simulate on
@@ -390,23 +390,74 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         tenderlySimulationOnExecuteResponse,
       );
 
-      if (tenderlySimulationOnGasPaymentResponse.error) {
+      if (
+        tenderlySimulationOnGasPaymentResponse.error ||
+        tenderlySimulationOnExecuteResponse.error
+      ) {
         return null;
       }
 
-      console.log('send to bundler...');
+      // TODO: implement balance diff
+      // const gasPaymentBalanceChange =
+      //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.balance_diff.filter(
+      //     (balanceDiff: { address: string }) =>
+      //       balanceDiff.address === aaAccount,
+      //   );
+
+      const formatTenderlySimlationLog = (log: any) => {
+        const name = log.name ? log.name : 'unknown';
+        const inputs = log.inputs
+          ? log.inputs.map((input: any) => [
+              text(input.soltype.name),
+              copyable(input.value.toString()),
+            ])
+          : [];
+        return panel([
+          heading(`${name} at`),
+          copyable(log.raw.address),
+          ...inputs.flat(),
+        ]);
+      };
+
+      const formattedTenderlySimulationOnGasPaymentResponse =
+        tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.logs.map(
+          (log: any) => {
+            return formatTenderlySimlationLog(log);
+          },
+        );
+
+      const formattedTenderlySimulationOnExecuteResponse =
+        tenderlySimulationOnExecuteResponse.transaction.transaction_info.logs.map(
+          (log: any) => {
+            return formatTenderlySimlationLog(log);
+          },
+        );
 
       const simlationResultConfirmResult = await snap.request({
         method: 'snap_dialog',
         params: {
           type: 'Confirmation',
-          content: panel([heading('Transaction simulation with Tendarly')]),
+          content: panel([
+            heading('Transaction Simulation with Tenderly'),
+            divider(),
+            heading(`Gas payment made on chain ID: ${gasPaymentChainId}`),
+            // text('Balance diff change:'),
+            // text('detail...'),
+            ...formattedTenderlySimulationOnGasPaymentResponse,
+            divider(),
+            heading(`Transaction made on chain ID: ${connectedChainId}`),
+            // text('Balance diff  change:'),
+            // text('detail...'),
+            ...formattedTenderlySimulationOnExecuteResponse,
+          ]),
         },
       });
 
       if (!simlationResultConfirmResult) {
         return null;
       }
+
+      console.log('send to bundler...');
 
       const [
         sendGasPaymentUserOpToBundlerResult,
@@ -427,7 +478,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
 
       return {
-        // sendGasPaymentUserOpToBundlerResult,
+        sendGasPaymentUserOpToBundlerResult,
         sendExecuteUserOpToBundlerResult,
       };
     }
