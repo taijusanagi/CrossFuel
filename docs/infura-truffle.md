@@ -1,17 +1,16 @@
 ## Contract Deployement
 
-- To ensure uniformity of the service wallet across all chains, a custom development script utilizing create2 is necessary for the deployment of the contract.
+To ensure uniformity of the service wallet across all chains, a custom development script utilizing create2 is necessary for deploying the contract.
 
-https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/implementations/metamask-snap/packages/truffle/scripts/deploy-all-contracts.js
+The script can be found here: https://github.com/taijusanagi/2023-eth-denver-submission/blob/main/implementations/metamask-snap/packages/truffle/scripts/deploy-all-contracts.js
 
 ## Contract Verification
 
-Contract Verification is done by https://www.npmjs.com/package/truffle-plugin-verify.
-This verification is significantly helpful for development when using Tenderly to debug.
+Contract verification is done by https://www.npmjs.com/package/truffle-plugin-verify. This verification is significantly helpful for development when using Tenderly to debug.
 
 ### EntryPoint
 
-- EntryPoint is verified by default
+- EntryPoint is verified by default.
 
 ### SimpleAccountFactory
 
