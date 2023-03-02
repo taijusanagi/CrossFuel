@@ -14,8 +14,12 @@ So in total, the user needs to sign four times!
 
 To improve user experience, we are utilizing snap_getBip44Entropy to have control over user private key and sign four times in one prompt, making the process smoother and more seamless for the user.
 
-![metamask-snap-permission](./metamask-snap-permission.png)
+![metamask-dialog](./metamask-dialog.png)
+
+Only one approval from the user is required to generate and authorize a user operation for Account Abstraction.
 
 ## Security
 
-We are utilizing Tenderly to reduce security risks and ensure the safety of the application.
+To strike a balance between security and user experience, we're leveraging Tenderly to mitigate security risks and guarantee the safety of the application.
+
+![transaction-simulator](./transaction-simulator.png)

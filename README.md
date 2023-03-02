@@ -38,6 +38,6 @@ Defender creates a signature for verifying paymaster contract and automates mult
 
 ### Tenderly
 
-Tenderly enables transaction simulation.
+Communicating the inner workings of Account Abstraction to users is challenging. To enhance the user experience, we're using Tenderly to simulate transaction results. This allows users to review the transaction outcome before submitting it to the bundler, thereby ensuring the security of the process. This security feature is critical in making the Account Abstraction wallet widely accepted.
 
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without worrying about managing tokens across different chains.
