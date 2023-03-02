@@ -1,9 +1,13 @@
-const { EntryPoint__factory } = require('@account-abstraction/contracts');
+const {
+  EntryPoint__factory,
+  SimpleAccountFactory__factory,
+  VerifyingPaymaster__factory,
+} = require('@account-abstraction/contracts');
 const { DeterministicDeployer } = require('@account-abstraction/sdk');
 const { ethers } = require('ethers');
 const networks = require('../networks');
-const FactoryJson = require('../build/SimpleAccountFactory.json');
-const PaymasterJson = require('../build/VerifyingPaymaster.json');
+// const FactoryJson = require('../build/SimpleAccountFactory.json');
+// const PaymasterJson = require('../build/VerifyingPaymaster.json');
 const MockERC20Json = require('../build/MockERC20.json');
 const MockSBTClaimJson = require('../build/MockSBTClaim.json');
 
@@ -70,7 +74,7 @@ const main = async () => {
       console.log('factoryDeploymentArgument', factoryDeploymentArgument);
       const factoryDeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
-        [FactoryJson.bytecode, factoryDeploymentArgument],
+        [SimpleAccountFactory__factory.bytecode, factoryDeploymentArgument],
       );
       factoryAddress = await deployIfNeeded(factoryDeploymentCode);
 
@@ -82,13 +86,13 @@ const main = async () => {
       console.log('paymasterDeploymentArgument', paymasterDeploymentArgument);
       const paymasterDeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
-        [PaymasterJson.bytecode, paymasterDeploymentArgument],
+        [VerifyingPaymaster__factory.bytecode, paymasterDeploymentArgument],
       );
       paymasterAddress = await deployIfNeeded(paymasterDeploymentCode);
 
       const paymasterContract = new ethers.Contract(
         paymasterAddress,
-        PaymasterJson.abi,
+        VerifyingPaymaster__factory.abi,
         signer,
       );
 

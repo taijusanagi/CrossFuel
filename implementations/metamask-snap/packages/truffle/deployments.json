@@ -1,7 +1,7 @@
 {
   "entryPointAddress": "0x0576a174d229e3cfa37253523e645a78a0c91b57",
-  "factoryAddress": "0xede0e5a74d8633aab63137e564603e459246924b",
-  "paymasterAddress": "0xab49271f86d99aa6efa4a96a00efc5ac864b051a",
-  "mockERC20Address": "0x8bfceb73d45dc5f39e61b4a060bf23c12aa5a444",
-  "mockSBTClaim": "0x7c5483a03bfd42565e333a1f02671415a687b712"
+  "factoryAddress": "0x09c58cf6be8e25560d479bd52b4417d15bca2845",
+  "paymasterAddress": "0x2c9dbd89fe7aed69dc2c03c98b8946f1ebc4cea3",
+  "mockERC20Address": "0xa442e0a09f3dda9f6f2ed1fc5dfc1a092c846cf0",
+  "mockSBTClaim": "0xf0c9dec395ad77a9d5ad3fc2edeb530dc755e62c"
 }
