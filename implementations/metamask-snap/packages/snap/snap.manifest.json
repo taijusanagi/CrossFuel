@@ -1,13 +1,13 @@
 {
   "version": "0.1.0",
-  "description": "An example Snap written in TypeScript.",
-  "proposedName": "TypeScript Example Snap",
+  "description": "CrossFuel is a seamless cross-chain gas payment service infrastructure that leverages Account Abstraction.",
+  "proposedName": "CrossFuel",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MetaMask/template-snap-monorepo.git"
+    "url": "https://github.com/taijusanagi/CrossFuel"
   },
   "source": {
-    "shasum": "xo8miy/yDg3FZHffV8x5vp/IBwWMQV9hcwozHmVpik4=",
+    "shasum": "UCRQkLdWkBtjWb3NTJg5+4ay1VFtq8RFho15QZ1hkYY=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",
