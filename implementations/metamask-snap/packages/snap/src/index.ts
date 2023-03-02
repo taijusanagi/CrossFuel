@@ -3,6 +3,7 @@ import { UserOperationStruct } from '@account-abstraction/contracts';
 import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, copyable, text, heading } from '@metamask/snaps-ui';
+
 import { ethers } from 'ethers';
 import {
   HttpRpcClient,
@@ -39,8 +40,15 @@ let currentChainId: ChainId | null;
 const gasPaymentChainId = '5';
 
 // TODO: replace with defender address
+const bundlerSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
 const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
+
+// TODO: move to safe place
 const infuraProjectId = 'eedaad734dce46a4b08816a7f6df0b9b';
+
+const tenderlyApiKey = 'LQCz-SOOynktbBecKFBpduGtnkCVFNiR';
+const tenderlyUser = 'taijusanagi';
+const tenderlyProject = 'hackathon';
 
 const isChainId = (value: string): value is ChainId => {
   return Object.keys(bundlerUrls).includes(value);
@@ -306,6 +314,38 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
       console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
 
+      const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
+
+      const tenderlySimulationOnGasPaymentResponse = await fetch(tenderlyURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Key': tenderlyApiKey,
+        },
+        body: JSON.stringify({
+          /* Simulation Configuration */
+          save: false, // if true simulation is saved and shows up in the dashboard
+          save_if_fails: false, // if true, reverting simulations show up in the dashboard
+          simulation_type: 'full', // full or quick (full is default)
+
+          network_id: '1', // network to simulate on
+
+          /* Standard EVM Transaction object */
+          from: '0xdc6bdc37b2714ee601734cf55a05625c9e512461',
+          to: '0x6b175474e89094c44da98b954eedeac495271d0f',
+          input:
+            '0x095ea7b3000000000000000000000000f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1000000000000000000000000000000000000000000000000000000000000012b',
+          gas: 8000000,
+          gas_price: 0,
+          value: 0,
+        }),
+      }).then((response) => response.json());
+
+      console.log(
+        'tenderlySimulationOnGasPaymentResponse',
+        tenderlySimulationOnGasPaymentResponse,
+      );
+
       const sendGasPaymentUserOpToBundlerResult =
         await gasPaymentChainBundler.sendUserOpToBundler(
           resolvedGasPaymentUserOp2,
@@ -323,6 +363,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         'sendExecuteUserOpToBundlerResult',
         sendExecuteUserOpToBundlerResult,
       );
+
+      console.log(resp);
 
       return {
         sendGasPaymentUserOpToBundlerResult,
