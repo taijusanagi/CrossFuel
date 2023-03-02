@@ -39,7 +39,7 @@ let currentChainId: ChainId | null;
 const gasPaymentChainId = '5';
 
 // TODO: replace with defender address
-const verifyingPaymasterSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
+const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
 const infuraProjectId = 'eedaad734dce46a4b08816a7f6df0b9b';
 
 const isChainId = (value: string): value is ChainId => {

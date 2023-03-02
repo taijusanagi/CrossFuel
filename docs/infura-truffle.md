@@ -19,10 +19,10 @@ This verification is significantly helpful for development when using Tenderly t
 yarn truffle run verify SimpleAccountFactory@0x4899c9db043dba05f2b15bf4b1149fd58bf00e08 --verifiers=etherscan --forceConstructorArgs string:0000000000000000000000000576a174d229e3cfa37253523e645a78a0c91b57 --network <network>
 ```
 
-### Paymaster
+### Verifying Paymaster
 
 ```
-yarn truffle run verify VerifyingPaymaster@0x4899c9db043dba05f2b15bf4b1149fd58bf00e08 --verifiers=etherscan --forceConstructorArgs string:0000000000000000000000000576a174d229e3cfa37253523e645a78a0c91b57000000000000000000000000a8dba26608565e1f69d81efae4cbb5cb8e87013d --network <network>
+yarn truffle run verify VerifyingPaymaster@0xab49271f86d99aa6efa4a96a00efc5ac864b051a --verifiers=etherscan --forceConstructorArgs string:0000000000000000000000000576a174d229e3cfa37253523e645a78a0c91b570000000000000000000000007f5aa4c071671ad22edc02bb8a081418bb6c484f --network <network>
 ```
 
 ### MockERC20

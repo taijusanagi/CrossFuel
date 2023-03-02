@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { ethers } from "ethers";
 
+import { DefenderRelaySigner, DefenderRelayProvider } from "defender-relay-client/lib/ethers";
+
 import deployments from "../../metamask-snap/packages/truffle/deployments.json";
 import PaymasterJson from "../../metamask-snap/packages/truffle/build/VerifyingPaymaster.json";
 
@@ -11,8 +13,10 @@ import MockERC20Json from "../../metamask-snap/packages/truffle/build/MockERC20.
 dotenv.config();
 
 const port = process.env.PORT || "8001";
-const mnemonicPhrase = process.env.MNEMONIC_PHRASE || "";
-const infuraProjectId = process.env.INFURA_PROJECT_ID;
+
+// @dev: keep local signer implementation for zkSync integration
+// const mnemonicPhrase = process.env.MNEMONIC_PHRASE || "";
+// const infuraProjectId = process.env.INFURA_PROJECT_ID;
 
 const app: Express = express();
 app.use(cors());
@@ -20,28 +24,41 @@ app.use(express.json());
 
 type ChainId = "5" | "80001";
 
-const chainName = {
-  "5": "goerli",
-  "80001": "polygon-mumbai",
-};
+// const chainName = {
+//   "5": "goerli",
+//   "80001": "polygon-mumbai",
+// };
 
 const gasPaymentChainId = "5";
 
-const getSignerAndProviderForTargetChain = (chainId: ChainId) => {
-  const provider = new ethers.providers.JsonRpcProvider(
-    `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`
-  );
-  const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
+const getDefenderSignerByChainId = (chainId: ChainId) => {
+  const credentials =
+    chainId == "5"
+      ? { apiKey: process.env.DEFENDER_GOERLI_PAI_KEY || "", apiSecret: process.env.DEFENDER_GOERLI_SECRET_KEY || "" }
+      : { apiKey: process.env.DEFENDER_MUMBAI_PAI_KEY || "", apiSecret: process.env.DEFENDER_MUMBAI_SECRET_KEY || "" };
+  const provider = new DefenderRelayProvider(credentials);
+  const signer = new DefenderRelaySigner(credentials, provider, { speed: "fast" });
   return { provider, signer };
 };
 
+// const getSignerAndProviderForTargetChain = (chainId: ChainId) => {
+//   const provider = new ethers.providers.JsonRpcProvider(
+//     `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`
+//   );
+//   const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
+//   return { provider, signer };
+// };
+
 app.get("/", (req: Request, res: Response) => {
+  console.log("hello");
   res.send("Hello");
 });
 
 app.post("/faucet", async (req: Request, res: Response) => {
+  console.log("faucet");
   const { to } = req.body;
-  const { signer } = getSignerAndProviderForTargetChain(gasPaymentChainId);
+  // const { signer } = getSignerAndProviderForTargetChain(gasPaymentChainId);
+  const { signer } = getDefenderSignerByChainId(gasPaymentChainId);
   const mockERO20 = new ethers.Contract(deployments.mockERC20Address, MockERC20Json.abi, signer);
   const currentBalance = await mockERO20.balanceOf(to);
   const amount = 99;
@@ -61,7 +78,8 @@ app.post("/sign", async (req: Request, res: Response) => {
   console.log("sign");
   const { chainId, userOp } = req.body;
   const { paymasterAddress } = deployments;
-  const { provider, signer } = getSignerAndProviderForTargetChain(chainId);
+  // const { provider, signer } = getSignerAndProviderForTargetChain(chainId);
+  const { provider, signer } = getDefenderSignerByChainId(chainId);
   const paymasterContract = new ethers.Contract(paymasterAddress, PaymasterJson.abi, provider);
   const blockNumber = await provider.getBlockNumber();
   const block = await provider.getBlock(blockNumber);
@@ -88,6 +106,10 @@ app.post("/sign", async (req: Request, res: Response) => {
     const paymasterAndData = await paymasterContract
       .getHash(userOp, validUntil, validAfter)
       .then(async (hash: string) => {
+        // await relayer.sign({ message: hash }).then(({ sig: signature }) => {
+        //   console.log("recover test:", ethers.utils.recoverAddress(hash, signature));
+        // });
+
         const signature = await signer.signMessage(ethers.utils.arrayify(hash));
         const paymasterAndData = ethers.utils.hexConcat([
           paymasterAddress,
