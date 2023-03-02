@@ -38,14 +38,6 @@ function getInfuraNetwork(name) {
   return getNetwork(infuraUrl(name));
 }
 
-const optimizedComilerSettings = {
-  version: '0.8.17',
-  settings: {
-    optimizer: { enabled: true, runs: 1000000 },
-    viaIR: true,
-  },
-};
-
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -95,13 +87,16 @@ module.exports = {
   },
 
   // Configure your compilers
+
+  // @dev: optimizer is disabled because of this issue
+  // https://github.com/rkalis/truffle-plugin-verify/issues/181
   compilers: {
     solc: {
       version: '0.8.17',
-      settings: {
-        optimizer: { enabled: true, runs: 1000000 },
-        viaIR: true,
-      },
+      // settings: {
+      //   optimizer: { enabled: true, runs: 1000000 },
+      //   viaIR: true,
+      // },
     },
   },
 

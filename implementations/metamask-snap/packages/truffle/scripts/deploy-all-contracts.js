@@ -27,6 +27,7 @@ const truffle = require('../truffle-config');
 
 // TODO: replace with defender address
 const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
+const intervalTime = 1000;
 
 const main = async () => {
   let entryPointAddress;
@@ -51,15 +52,30 @@ const main = async () => {
       const dep = new DeterministicDeployer(provider);
 
       const deployIfNeeded = async (deploymentCode) => {
-        const addr = DeterministicDeployer.getAddress(deploymentCode);
-        if (await dep.isContractDeployed(addr)) {
-          console.log('already deployed at', addr);
-        } else {
-          console.log('deploy now...');
-          await dep.deterministicDeploy(deploymentCode);
-          console.log('deployed at', addr);
-        }
-        return addr;
+        return new Promise(async (resolve, reject) => {
+          const addr = DeterministicDeployer.getAddress(deploymentCode);
+          if (await dep.isContractDeployed(addr)) {
+            console.log('already deployed at', addr);
+            resolve(addr);
+          } else {
+            console.log('deploy now...');
+            await dep.deterministicDeploy(deploymentCode);
+
+            // Added custom wait function to ensure complete contract deployment before continuing.
+            const interval = setInterval(async () => {
+              try {
+                isDeployed = await dep.isContractDeployed(addr);
+                if (isDeployed) {
+                  clearInterval(interval);
+                  console.log('deployed at', addr);
+                  resolve(addr);
+                }
+              } catch (error) {
+                reject(error);
+              }
+            }, intervalTime);
+          }
+        });
       };
 
       console.log('====== EntryPoint ======');
