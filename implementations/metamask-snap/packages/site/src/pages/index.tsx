@@ -131,9 +131,7 @@ const Index = () => {
       <Heading>
         Welcome to <Span>CrossFuel</Span>
       </Heading>
-      <Subtitle>
-        Get started by editing <code>src/index.ts</code>
-      </Subtitle>
+      <Subtitle>Cross-chain gas payment infrastructure</Subtitle>
       <CardContainer>
         {state.error && (
           <ErrorMessage>
