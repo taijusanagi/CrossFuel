@@ -1,5 +1,9 @@
+/* eslint-disable camelcase */
 /* eslint-disable no-case-declarations */
-import { UserOperationStruct } from '@account-abstraction/contracts';
+import {
+  UserOperationStruct,
+  EntryPoint__factory,
+} from '@account-abstraction/contracts';
 import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, copyable, text, heading } from '@metamask/snaps-ui';
@@ -42,6 +46,7 @@ const gasPaymentChainId = '5';
 // TODO: replace with defender address
 const bundlerSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
 const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
+const beneficiary = verifyingPaymasterSigner;
 
 // TODO: move to safe place
 const infuraProjectId = 'eedaad734dce46a4b08816a7f6df0b9b';
@@ -274,7 +279,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       resolveGasPaymentUserOp1.preVerificationGas = 100000;
 
       // some chain call gas limit calculation is wrong
-      resolveGasPaymentUserOp1.callGasLimit = 21828;
+      // resolveGasPaymentUserOp1.callGasLimit = 21828;
 
       resolveGasPaymentUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
@@ -299,22 +304,32 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       resolvedExecuteUserOp1.preVerificationGas = 100000;
 
       // some chain call gas limit calculation is wrong
-      resolvedExecuteUserOp1.callGasLimit = 21828;
+      // resolvedExecuteUserOp1.callGasLimit = 21828;
 
       resolvedExecuteUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
       const executeOp2 = await executeAbstractAccount.signUserOp(
         resolvedExecuteUserOp1,
       );
+
+      // executeAbstractAccount.
       const resolvedExecuteUserOp2 = await resolveProperties(executeOp2);
 
-      console.log('send to bundler');
       currentChainId = null;
-
-      console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
       console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
+      console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
+
+      console.log('simulation...');
 
       const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
+      const entryPointInterface = new ethers.utils.Interface(
+        EntryPoint__factory.abi,
+      );
+
+      const gasPaymentInput = entryPointInterface.encodeFunctionData(
+        'handleOps',
+        [[resolvedGasPaymentUserOp2], beneficiary],
+      );
 
       const tenderlySimulationOnGasPaymentResponse = await fetch(tenderlyURL, {
         method: 'POST',
@@ -324,19 +339,43 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         },
         body: JSON.stringify({
           /* Simulation Configuration */
-          save: false, // if true simulation is saved and shows up in the dashboard
+          save: true, // if true simulation is saved and shows up in the dashboard
           save_if_fails: false, // if true, reverting simulations show up in the dashboard
           simulation_type: 'full', // full or quick (full is default)
-
-          network_id: '1', // network to simulate on
-
+          network_id: gasPaymentChainId, // network to simulate on
           /* Standard EVM Transaction object */
-          from: '0xdc6bdc37b2714ee601734cf55a05625c9e512461',
-          to: '0x6b175474e89094c44da98b954eedeac495271d0f',
-          input:
-            '0x095ea7b3000000000000000000000000f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1000000000000000000000000000000000000000000000000000000000000012b',
-          gas: 8000000,
-          gas_price: 0,
+          from: bundlerSigner,
+          to: deployments.entryPointAddress,
+          input: gasPaymentInput,
+          gas: 1000000,
+          gas_price: resolvedGasPaymentUserOp2.maxFeePerGas.toString(),
+          value: 0,
+        }),
+      }).then((response) => response.json());
+
+      const executeInput = entryPointInterface.encodeFunctionData('handleOps', [
+        [resolvedExecuteUserOp2],
+        beneficiary,
+      ]);
+
+      const tenderlySimulationOnExecuteResponse = await fetch(tenderlyURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Key': tenderlyApiKey,
+        },
+        body: JSON.stringify({
+          /* Simulation Configuration */
+          save: true, // if true simulation is saved and shows up in the dashboard
+          save_if_fails: false, // if true, reverting simulations show up in the dashboard
+          simulation_type: 'full', // full or quick (full is default)
+          network_id: connectedChainId, // network to simulate on
+          /* Standard EVM Transaction object */
+          from: bundlerSigner,
+          to: deployments.entryPointAddress,
+          input: executeInput,
+          gas: 1000000,
+          gas_price: resolvedExecuteUserOp2.maxFeePerGas.toString(),
           value: 0,
         }),
       }).then((response) => response.json());
@@ -346,13 +385,36 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         tenderlySimulationOnGasPaymentResponse,
       );
 
-      const sendGasPaymentUserOpToBundlerResult =
-        await gasPaymentChainBundler.sendUserOpToBundler(
-          resolvedGasPaymentUserOp2,
-        );
+      console.log(
+        'tenderlySimulationOnExecuteResponse',
+        tenderlySimulationOnExecuteResponse,
+      );
 
-      const sendExecuteUserOpToBundlerResult =
-        await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
+      if (tenderlySimulationOnGasPaymentResponse.error) {
+        return null;
+      }
+
+      console.log('send to bundler...');
+
+      const simlationResultConfirmResult = await snap.request({
+        method: 'snap_dialog',
+        params: {
+          type: 'Confirmation',
+          content: panel([heading('Transaction simulation with Tendarly')]),
+        },
+      });
+
+      if (!simlationResultConfirmResult) {
+        return null;
+      }
+
+      const [
+        sendGasPaymentUserOpToBundlerResult,
+        sendExecuteUserOpToBundlerResult,
+      ] = await Promise.all([
+        gasPaymentChainBundler.sendUserOpToBundler(resolvedGasPaymentUserOp2),
+        executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2),
+      ]);
 
       console.log(
         'sendGasPaymentUserOpToBundlerResult',
@@ -364,10 +426,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         sendExecuteUserOpToBundlerResult,
       );
 
-      console.log(resp);
-
       return {
-        sendGasPaymentUserOpToBundlerResult,
+        // sendGasPaymentUserOpToBundlerResult,
         sendExecuteUserOpToBundlerResult,
       };
     }

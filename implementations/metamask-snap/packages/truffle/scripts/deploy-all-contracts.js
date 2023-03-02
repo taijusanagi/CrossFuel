@@ -118,6 +118,24 @@ const main = async () => {
       );
       mockERC20Address = await deployIfNeeded(mockERC20DeploymentCode);
 
+      const mockERC20Contract = new ethers.Contract(
+        mockERC20Address,
+        MockERC20Json.abi,
+        signer,
+      );
+
+      const balance = await mockERC20Contract.balanceOf(
+        verifyingPaymasterSigner,
+      );
+      if (balance.eq('0')) {
+        console.log('mock payment token deposit is too low');
+        await mockERC20Contract.mint(
+          verifyingPaymasterSigner,
+          ethers.utils.parseEther('0.01'),
+        );
+        console.log('depositted');
+      }
+
       console.log('====== Mock SBT Claim ======');
       const mockSBTClaimDeploymentCode = MockSBTClaimJson.bytecode;
       mockSBTClaim = await deployIfNeeded(mockSBTClaimDeploymentCode);
