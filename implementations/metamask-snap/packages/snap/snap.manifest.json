@@ -4,7 +4,7 @@
   "proposedName": "CrossFuel",
   "repository": {
     "type": "git",
-    "url": "https://github.com/taijusanagi/CrossFuel"
+    "url": "https://github.com/MetaMask/template-snap-monorepo.git"
   },
   "source": {
     "shasum": "UCRQkLdWkBtjWb3NTJg5+4ay1VFtq8RFho15QZ1hkYY=",
