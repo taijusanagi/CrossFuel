@@ -71,7 +71,7 @@ export const sendAccountAbstraction = async () => {
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'get_eoa_address' },
+      request: { method: 'aa_getExternalOwnedAccount' },
     },
   });
   console.log('eoaAddress', eoaAddress);
@@ -80,7 +80,7 @@ export const sendAccountAbstraction = async () => {
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'get_aa_address' },
+      request: { method: 'aa_getAbstractAccount' },
     },
   });
   console.log('aaAddress', aaAddress);
@@ -112,7 +112,7 @@ export const sendAccountAbstraction = async () => {
     params: {
       snapId: defaultSnapOrigin,
       request: {
-        method: 'send_aa_tx',
+        method: 'send_aa_sendTransactionWithCrossFuel',
         params: {
           target: deployments.mockSBTClaim,
           data: claimSBTData,

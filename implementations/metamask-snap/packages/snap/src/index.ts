@@ -2,7 +2,7 @@
 import { UserOperationStruct } from '@account-abstraction/contracts';
 import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
-import { panel, text } from '@metamask/snaps-ui';
+import { panel, copyable, text, heading } from '@metamask/snaps-ui';
 import { ethers } from 'ethers';
 import {
   HttpRpcClient,
@@ -148,7 +148,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 }) => {
   console.log('onRpcRequest');
   switch (request.method) {
+    // This is the original code and should be kept as a reference for future use.
     case 'hello':
+      console.log('hello');
       return snap.request({
         method: 'snap_dialog',
         params: {
@@ -162,36 +164,54 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           ]),
         },
       });
-    case 'get_eoa_address': {
+    case 'aa_getExternalOwnedAccount': {
+      console.log('aa_getExternalOwnedAccount');
       const signer = await getSignerFromDerivedPrivateKey();
       return await signer.getAddress();
     }
 
-    case 'get_aa_address': {
+    case 'aa_getAbstractAccount': {
+      console.log('aa_getAbstractAccount');
       const chainId = await getConnectedChainId();
       const connectedAbstractAccount = await getAbstractAccount(chainId);
       return await connectedAbstractAccount.getAccountAddress();
     }
 
-    case 'send_aa_tx': {
-      console.log('send_aa_tx');
+    case 'send_aa_sendTransactionWithCrossFuel': {
+      console.log('send_aa_sendTransactionWithCrossFuel');
 
       const { target, data } = request.params as {
         target: string;
         data: string;
       };
 
-      console.log('snapConfirmResult');
+      console.log('confirm transaction...');
       const snapConfirmResult = await snap.request({
-        method: 'snap_confirm',
-        params: [
-          {
-            prompt: 'Transfer',
-            description: 'Transfer from your Abstraction Account',
-            textAreaContent: `target: ${target}`,
-          },
-        ],
+        method: 'snap_dialog',
+        params: {
+          type: 'Confirmation',
+          content: panel([
+            heading('Account Abstraction with Cross-Chain Gas Payment'),
+
+            text(
+              'By approving this request, you are authorizing Metamask Snap to access your private key and create a cross-chain batch transaction with gas payment.',
+            ),
+
+            // TODO: make it dynamic
+            text('Gas Payment ChainId:'),
+            copyable(gasPaymentChainId),
+            text('Gas Payment Token:'),
+            copyable(deployments.mockERC20Address),
+            text('Target Address:'),
+            copyable(target),
+            text('Transaction Data:'),
+            copyable(data),
+            text('Transaction Value:'),
+            copyable('0'),
+          ]),
+        },
       });
+
       if (!snapConfirmResult) {
         return null;
       }
