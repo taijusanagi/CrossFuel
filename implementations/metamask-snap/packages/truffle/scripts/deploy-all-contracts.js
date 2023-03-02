@@ -22,7 +22,7 @@ const mnemonicPhrase = process.env.MNEMONIC_PHRASE;
 const truffle = require('../truffle-config');
 
 // TODO: replace with defender address
-const verifyingPaymasterSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
+const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
 
 const main = async () => {
   let entryPointAddress;
