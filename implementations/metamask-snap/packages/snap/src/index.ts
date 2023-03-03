@@ -18,6 +18,8 @@ import {
 import { getBIP44AddressKeyDeriver } from '@metamask/key-tree';
 import deployments from '../../truffle/deployments.json';
 import MockERC20Json from '../../truffle/build/MockERC20.json';
+import { getGasFee } from './utils/getGasFee';
+
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
@@ -31,8 +33,9 @@ import MockERC20Json from '../../truffle/build/MockERC20.json';
 
 const entryPoint = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
 const bundlerUrls = {
-  '5': 'http://localhost:3000/rpc',
-  '80001': 'http://localhost:3001/rpc',
+  '5': 'https://node.stackup.sh/v1/rpc/d7567b6a3d8c1d90df52de74c0b310e08dcb0a538f264ac162090c046613931c',
+  '80001':
+    'https://node.stackup.sh/v1/rpc/bdaf63d7cd0180897fc9ec780edd1d408e4c406aaab1763a73b21b0b35ae4af9',
 };
 const chainName = {
   '5': 'goerli',
@@ -189,339 +192,373 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     }
 
     case 'send_aa_sendTransactionWithCrossFuel': {
-      console.log('send_aa_sendTransactionWithCrossFuel');
+      try {
+        console.log('send_aa_sendTransactionWithCrossFuel');
 
-      const { target, data, gasPaymentChainId, gasPaymentToken } =
-        request.params as {
+        const {
+          target,
+          data,
+          gasPaymentChainId,
+          gasPaymentToken,
+          isTenderlySimulationEnabled,
+        } = request.params as {
           target: string;
           data: string;
           gasPaymentChainId: ChainId;
           gasPaymentToken: string;
+          isTenderlySimulationEnabled: boolean;
         };
 
-      const executeChainId = await getConnectedChainId();
+        const executeChainId = await getConnectedChainId();
 
-      console.log('confirm transaction...');
-      const snapConfirmResult = await snap.request({
-        method: 'snap_dialog',
-        params: {
-          type: 'Confirmation',
-          content: panel([
-            heading('Account Abstraction with Cross-Chain Gas Payment'),
-            text(
-              'By approving this request, you are authorizing Metamask Snap to access your private key and create a cross-chain batch transaction with gas payment.',
-            ),
-            heading('Gas Payment'),
-            text('ChainId:'),
-            copyable(gasPaymentChainId),
-            text('Gas Payment Token:'),
-            copyable(gasPaymentToken),
-            heading('Execute'),
-            text('ChainId:'),
-            copyable(executeChainId),
-            text('Target Address:'),
-            copyable(target),
-            text('Transaction Data:'),
-            copyable(data),
-            text('Transaction Value:'),
-            copyable('0'),
-          ]),
-        },
-      });
+        console.log('confirm transaction...');
+        const snapConfirmResult = await snap.request({
+          method: 'snap_dialog',
+          params: {
+            type: 'Confirmation',
+            content: panel([
+              heading('Account Abstraction with Cross-Chain Gas Payment'),
+              text(
+                'By approving this request, you are authorizing Metamask Snap to access your private key and create a cross-chain batch transaction with gas payment.',
+              ),
+              heading('Gas Payment'),
+              text('ChainId:'),
+              copyable(gasPaymentChainId),
+              text('Gas Payment Token:'),
+              copyable(gasPaymentToken),
+              heading('Execute'),
+              text('ChainId:'),
+              copyable(executeChainId),
+              text('Target Address:'),
+              copyable(target),
+              text('Transaction Data:'),
+              copyable(data),
+              text('Transaction Value:'),
+              copyable('0'),
+            ]),
+          },
+        });
 
-      if (!snapConfirmResult) {
+        if (!snapConfirmResult) {
+          return null;
+        }
+
+        console.log('init aa wallet');
+        const gasPaymentAbstractAccount = await getAbstractAccount(
+          gasPaymentChainId,
+        );
+        const executeAbstractAccount = await getAbstractAccount(executeChainId);
+
+        const aaAccount = await executeAbstractAccount.getAccountAddress();
+        console.log('aaAccount', aaAccount);
+
+        console.log('1. Generate an execute user operation.');
+
+        currentChainId = executeChainId;
+        const executeChainProvider =
+          getJsonPRCProviderByChainId(executeChainId);
+        const executeOp1 = await executeAbstractAccount.createSignedUserOp({
+          target,
+          data,
+          ...getGasFee(executeChainProvider),
+        });
+
+        console.log(
+          '2. Calculate the gas needed for the execute user operation created in step 1.',
+        );
+        const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
+        const gasWillBeUsed = ethers.BigNumber.from(
+          resolvedExecuteUserOp1.callGasLimit,
+        )
+          .add(resolvedExecuteUserOp1.preVerificationGas)
+          .toString();
+        let paymentTokenAmount = '0';
+        if (gasPaymentToken === deployments.mockERC20Address) {
+          // @dev: Since there is no currency conversion for the mock ERC20, a fixed amount is being used.
+          paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
+        } else {
+          const params = {
+            gasPaymentChainId,
+            gasPaymentToken,
+            executeChainId,
+            gasWillBeUsed,
+          };
+          const queryString = qs.stringify(params);
+          const { requiredGasPaymentTokenAmount } = await fetch(
+            `${'http://localhost:8001/getRequiredPaymentTokenAmount'}?${queryString}`,
+          ).then((response) => response.json());
+          paymentTokenAmount = requiredGasPaymentTokenAmount.toString();
+        }
+
+        console.log(
+          '3. Create a gas payment user operation using the gas amount calculated in step 2.',
+        );
+
+        currentChainId = gasPaymentChainId;
+        const gasPaymentChainProvider =
+          getJsonPRCProviderByChainId(gasPaymentChainId);
+        let gasPaymentOp1;
+        if (gasPaymentToken === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') {
+          gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
+            target: fundManager,
+            data: '0x',
+            ...getGasFee(gasPaymentChainProvider),
+            value: paymentTokenAmount,
+          });
+        } else {
+          const mockERO20 = new ethers.Contract(
+            gasPaymentToken,
+            MockERC20Json.abi,
+          );
+          const gasPaymentData = mockERO20.interface.encodeFunctionData(
+            'transfer',
+            [fundManager, paymentTokenAmount],
+          );
+          gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
+            target: gasPaymentToken,
+            data: gasPaymentData,
+            ...getGasFee(gasPaymentChainProvider),
+          });
+        }
+
+        const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
+
+        console.log('4. Sign the gas payment user operation with paymaster.');
+        // @dev: This is fix preVerificationGas too low bug
+        // https://github.com/eth-infinitism/bundler/pull/7
+        resolveGasPaymentUserOp1.preVerificationGas = 100000;
+
+        resolveGasPaymentUserOp1.paymasterAndData =
+          await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
+
+        const gasPaymentOp2 = await gasPaymentAbstractAccount.signUserOp(
+          resolveGasPaymentUserOp1,
+        );
+        const resolvedGasPaymentUserOp2 = await resolveProperties(
+          gasPaymentOp2,
+        );
+
+        console.log('5. Sign the execute user operation with paymaster.');
+        // @dev: This is fix preVerificationGas too low bug
+        // https://github.com/eth-infinitism/bundler/pull/7
+        currentChainId = executeChainId;
+        resolvedExecuteUserOp1.preVerificationGas = 100000;
+
+        resolvedExecuteUserOp1.paymasterAndData =
+          await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
+        const executeOp2 = await executeAbstractAccount.signUserOp(
+          resolvedExecuteUserOp1,
+        );
+
+        // executeAbstractAccount.
+        const resolvedExecuteUserOp2 = await resolveProperties(executeOp2);
+
+        currentChainId = null;
+        console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
+        console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
+
+        console.log('6. Conduct a Tenderly simulation.');
+        if (isTenderlySimulationEnabled) {
+          const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
+          const entryPointInterface = new ethers.utils.Interface(
+            EntryPoint__factory.abi,
+          );
+          const gasPaymentInput = entryPointInterface.encodeFunctionData(
+            'handleOps',
+            [[resolvedGasPaymentUserOp2], fundManager],
+          );
+          const tenderlySimulationOnGasPaymentResponse = await fetch(
+            tenderlyURL,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Access-Key': tenderlyApiKey,
+              },
+              body: JSON.stringify({
+                /* Simulation Configuration */
+                save: false, // if true simulation is saved and shows up in the dashboard
+                save_if_fails: false, // if true, reverting simulations show up in the dashboard
+                simulation_type: 'full', // full or quick (full is default)
+                network_id: gasPaymentChainId, // network to simulate on
+                /* Standard EVM Transaction object */
+                from: bundlerSigner,
+                to: deployments.entryPointAddress,
+                input: gasPaymentInput,
+                gas: 1000000,
+                gas_price: resolvedGasPaymentUserOp2.maxFeePerGas.toString(),
+                value: 0,
+              }),
+            },
+          ).then((response) => response.json());
+          const executeInput = entryPointInterface.encodeFunctionData(
+            'handleOps',
+            [[resolvedExecuteUserOp2], fundManager],
+          );
+          const tenderlySimulationOnExecuteResponse = await fetch(tenderlyURL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Access-Key': tenderlyApiKey,
+            },
+            body: JSON.stringify({
+              /* Simulation Configuration */
+              save: false, // if true simulation is saved and shows up in the dashboard
+              save_if_fails: false, // if true, reverting simulations show up in the dashboard
+              simulation_type: 'full', // full or quick (full is default)
+              network_id: executeChainId, // network to simulate on
+              /* Standard EVM Transaction object */
+              from: bundlerSigner,
+              to: deployments.entryPointAddress,
+              input: executeInput,
+              gas: 1000000,
+              gas_price: resolvedExecuteUserOp2.maxFeePerGas.toString(),
+              value: 0,
+            }),
+          }).then((response) => response.json());
+          console.log(
+            'tenderlySimulationOnGasPaymentResponse',
+            tenderlySimulationOnGasPaymentResponse,
+          );
+
+          console.log(
+            'tenderlySimulationOnExecuteResponse',
+            tenderlySimulationOnExecuteResponse,
+          );
+
+          if (
+            tenderlySimulationOnGasPaymentResponse.error ||
+            tenderlySimulationOnExecuteResponse.error
+          ) {
+            return null;
+          }
+
+          // TODO: implement balance diff
+          // const gasPaymentBalanceChange =
+          //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.balance_diff.filter(
+          //     (balanceDiff: { address: string }) =>
+          //       balanceDiff.address === aaAccount,
+          //   );
+          const formatTenderlySimlationLog = (log: any) => {
+            const name = log.name ? log.name : 'unknown';
+            const inputs = log.inputs
+              ? log.inputs.map((input: any) => [
+                  text(input.soltype.name),
+                  copyable(input.value.toString()),
+                ])
+              : [];
+            return panel([
+              heading(`${name} at`),
+              copyable(log.raw.address),
+              ...inputs.flat(),
+            ]);
+          };
+          const formattedTenderlySimulationOnGasPaymentResponse =
+            tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.logs.map(
+              (log: any) => {
+                return formatTenderlySimlationLog(log);
+              },
+            );
+          const formattedTenderlySimulationOnExecuteResponse =
+            tenderlySimulationOnExecuteResponse.transaction.transaction_info.logs.map(
+              (log: any) => {
+                return formatTenderlySimlationLog(log);
+              },
+            );
+          const simlationResultConfirmResult = await snap.request({
+            method: 'snap_dialog',
+            params: {
+              type: 'Confirmation',
+              content: panel([
+                heading('Transaction Simulation with Tenderly'),
+                divider(),
+                heading(`Gas payment made on chain ID: ${gasPaymentChainId}`),
+                // text('Balance diff change:'),
+                // text('detail...'),
+                ...formattedTenderlySimulationOnGasPaymentResponse,
+                divider(),
+                heading(`Transaction made on chain ID: ${executeChainId}`),
+                // text('Balance diff  change:'),
+                // text('detail...'),
+                ...formattedTenderlySimulationOnExecuteResponse,
+              ]),
+            },
+          });
+          if (!simlationResultConfirmResult) {
+            return null;
+          }
+        } else {
+          console.log('simulation skipped');
+        }
+
+        console.log('init aa bundlers');
+        const gasPaymentChainBundler = new HttpRpcClient(
+          bundlerUrls[gasPaymentChainId],
+          entryPoint,
+          parseInt(gasPaymentChainId, 10),
+        );
+
+        const executeChainBundler = new HttpRpcClient(
+          bundlerUrls[executeChainId],
+          entryPoint,
+          parseInt(executeChainId, 10),
+        );
+
+        console.log(
+          '7. If the user approves the transaction, send the gas payment transaction to the bundler.',
+        );
+        const sendGasPaymentUserOpToBundlerResult =
+          await gasPaymentChainBundler.sendUserOpToBundler(
+            resolvedGasPaymentUserOp2,
+          );
+
+        console.log(
+          'sendGasPaymentUserOpToBundlerResult',
+          sendGasPaymentUserOpToBundlerResult,
+        );
+
+        console.log(
+          '8. After the gas payment transaction is sent, send the execute transaction to the bundler.',
+        );
+        const sendExecuteUserOpToBundlerResult =
+          await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
+
+        console.log(
+          'sendExecuteUserOpToBundlerResult',
+          sendExecuteUserOpToBundlerResult,
+        );
+
+        await snap.request({
+          method: 'snap_dialog',
+          params: {
+            type: 'Confirmation',
+            content: panel([
+              heading('User Op Sent to Bundler!'),
+              text('Gas payment request ID:'),
+              copyable(sendGasPaymentUserOpToBundlerResult),
+              text('Execute request ID:'),
+              copyable(sendExecuteUserOpToBundlerResult),
+            ]),
+          },
+        });
+
+        return {
+          sendGasPaymentUserOpToBundlerResult,
+          sendExecuteUserOpToBundlerResult,
+        };
+      } catch (e) {
+        await snap.request({
+          method: 'snap_dialog',
+          params: {
+            type: 'Alert',
+            content: panel([
+              heading('Something happened in the system'),
+              copyable(e.message),
+            ]),
+          },
+        });
         return null;
       }
-
-      console.log('init aa wallet');
-      const gasPaymentAbstractAccount = await getAbstractAccount(
-        gasPaymentChainId,
-      );
-      const executeAbstractAccount = await getAbstractAccount(executeChainId);
-
-      const aaAccount = await executeAbstractAccount.getAccountAddress();
-      console.log('aaAccount', aaAccount);
-
-      console.log('init aa bundlers');
-      const gasPaymentChainBundler = new HttpRpcClient(
-        bundlerUrls['5'],
-        entryPoint,
-        5,
-      );
-
-      const executeChainBundler = new HttpRpcClient(
-        bundlerUrls[executeChainId],
-        entryPoint,
-        parseInt(executeChainId, 10),
-      );
-
-      console.log('1. Generate an execute user operation.');
-      currentChainId = executeChainId;
-      const executeOp1 = await executeAbstractAccount.createSignedUserOp({
-        target,
-        data,
-        maxFeePerGas: 0x6507a5d0,
-        maxPriorityFeePerGas: 0x6507a5c0,
-      });
-
-      console.log(
-        '2. Calculate the gas needed for the execute user operation created in step 1.',
-      );
-      const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
-      const gasWillBeUsed = ethers.BigNumber.from(
-        resolvedExecuteUserOp1.callGasLimit,
-      )
-        .add(resolvedExecuteUserOp1.preVerificationGas)
-        .toString();
-      let paymentTokenAmount = '0';
-      if (gasPaymentToken === deployments.mockERC20Address) {
-        // @dev: Since there is no currency conversion for the mock ERC20, a fixed amount is being used.
-        paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
-      } else {
-        const params = {
-          gasPaymentChainId,
-          gasPaymentToken,
-          executeChainId,
-          gasWillBeUsed,
-        };
-        const queryString = qs.stringify(params);
-        const { requiredGasPaymentTokenAmount } = await fetch(
-          `${'http://localhost:8001/getRequiredPaymentTokenAmount'}?${queryString}`,
-        ).then((response) => response.json());
-        paymentTokenAmount = requiredGasPaymentTokenAmount.toString();
-      }
-
-      console.log(
-        '3. Create a gas payment user operation using the gas amount calculated in step 2.',
-      );
-      currentChainId = gasPaymentChainId;
-      let gasPaymentOp1;
-      if (gasPaymentToken === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') {
-        gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
-          target: fundManager,
-          data: '0x',
-          maxFeePerGas: 0x6507a5d0,
-          maxPriorityFeePerGas: 0x6507a5c0,
-          value: paymentTokenAmount,
-        });
-      } else {
-        const mockERO20 = new ethers.Contract(
-          gasPaymentToken,
-          MockERC20Json.abi,
-        );
-        const gasPaymentData = mockERO20.interface.encodeFunctionData(
-          'transfer',
-          [fundManager, paymentTokenAmount],
-        );
-        gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
-          target: gasPaymentToken,
-          data: gasPaymentData,
-          maxFeePerGas: 0x6507a5d0,
-          maxPriorityFeePerGas: 0x6507a5c0,
-        });
-      }
-
-      const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
-
-      console.log('4. Sign the gas payment user operation with paymaster.');
-      // @dev: This is fix preVerificationGas too low bug
-      // https://github.com/eth-infinitism/bundler/pull/7
-      resolveGasPaymentUserOp1.preVerificationGas = 100000;
-
-      resolveGasPaymentUserOp1.paymasterAndData =
-        await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
-
-      const gasPaymentOp2 = await gasPaymentAbstractAccount.signUserOp(
-        resolveGasPaymentUserOp1,
-      );
-      const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
-
-      console.log('5. Sign the execute user operation with paymaster.');
-      // @dev: This is fix preVerificationGas too low bug
-      // https://github.com/eth-infinitism/bundler/pull/7
-      currentChainId = executeChainId;
-      resolvedExecuteUserOp1.preVerificationGas = 100000;
-
-      resolvedExecuteUserOp1.paymasterAndData =
-        await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
-      const executeOp2 = await executeAbstractAccount.signUserOp(
-        resolvedExecuteUserOp1,
-      );
-
-      // executeAbstractAccount.
-      const resolvedExecuteUserOp2 = await resolveProperties(executeOp2);
-
-      currentChainId = null;
-      console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
-      console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
-
-      console.log('6. Conduct a Tenderly simulation.');
-      // console.log('simulation...');
-
-      // const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
-      // const entryPointInterface = new ethers.utils.Interface(
-      //   EntryPoint__factory.abi,
-      // );
-
-      // const gasPaymentInput = entryPointInterface.encodeFunctionData(
-      //   'handleOps',
-      //   [[resolvedGasPaymentUserOp2], fundManager],
-      // );
-
-      // const tenderlySimulationOnGasPaymentResponse = await fetch(tenderlyURL, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'X-Access-Key': tenderlyApiKey,
-      //   },
-      //   body: JSON.stringify({
-      //     /* Simulation Configuration */
-      //     save: false, // if true simulation is saved and shows up in the dashboard
-      //     save_if_fails: false, // if true, reverting simulations show up in the dashboard
-      //     simulation_type: 'full', // full or quick (full is default)
-      //     network_id: gasPaymentChainId, // network to simulate on
-      //     /* Standard EVM Transaction object */
-      //     from: bundlerSigner,
-      //     to: deployments.entryPointAddress,
-      //     input: gasPaymentInput,
-      //     gas: 1000000,
-      //     gas_price: resolvedGasPaymentUserOp2.maxFeePerGas.toString(),
-      //     value: 0,
-      //   }),
-      // }).then((response) => response.json());
-
-      // const executeInput = entryPointInterface.encodeFunctionData('handleOps', [
-      //   [resolvedExecuteUserOp2],
-      //   fundManager,
-      // ]);
-
-      // const tenderlySimulationOnExecuteResponse = await fetch(tenderlyURL, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'X-Access-Key': tenderlyApiKey,
-      //   },
-      //   body: JSON.stringify({
-      //     /* Simulation Configuration */
-      //     save: false, // if true simulation is saved and shows up in the dashboard
-      //     save_if_fails: false, // if true, reverting simulations show up in the dashboard
-      //     simulation_type: 'full', // full or quick (full is default)
-      //     network_id: connectedChainId, // network to simulate on
-      //     /* Standard EVM Transaction object */
-      //     from: bundlerSigner,
-      //     to: deployments.entryPointAddress,
-      //     input: executeInput,
-      //     gas: 1000000,
-      //     gas_price: resolvedExecuteUserOp2.maxFeePerGas.toString(),
-      //     value: 0,
-      //   }),
-      // }).then((response) => response.json());
-
-      // console.log(
-      //   'tenderlySimulationOnGasPaymentResponse',
-      //   tenderlySimulationOnGasPaymentResponse,
-      // );
-
-      // console.log(
-      //   'tenderlySimulationOnExecuteResponse',
-      //   tenderlySimulationOnExecuteResponse,
-      // );
-
-      // if (
-      //   tenderlySimulationOnGasPaymentResponse.error ||
-      //   tenderlySimulationOnExecuteResponse.error
-      // ) {
-      //   return null;
-      // }
-
-      // // TODO: implement balance diff
-      // // const gasPaymentBalanceChange =
-      // //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.balance_diff.filter(
-      // //     (balanceDiff: { address: string }) =>
-      // //       balanceDiff.address === aaAccount,
-      // //   );
-
-      // const formatTenderlySimlationLog = (log: any) => {
-      //   const name = log.name ? log.name : 'unknown';
-      //   const inputs = log.inputs
-      //     ? log.inputs.map((input: any) => [
-      //         text(input.soltype.name),
-      //         copyable(input.value.toString()),
-      //       ])
-      //     : [];
-      //   return panel([
-      //     heading(`${name} at`),
-      //     copyable(log.raw.address),
-      //     ...inputs.flat(),
-      //   ]);
-      // };
-
-      // const formattedTenderlySimulationOnGasPaymentResponse =
-      //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.logs.map(
-      //     (log: any) => {
-      //       return formatTenderlySimlationLog(log);
-      //     },
-      //   );
-
-      // const formattedTenderlySimulationOnExecuteResponse =
-      //   tenderlySimulationOnExecuteResponse.transaction.transaction_info.logs.map(
-      //     (log: any) => {
-      //       return formatTenderlySimlationLog(log);
-      //     },
-      //   );
-
-      // const simlationResultConfirmResult = await snap.request({
-      //   method: 'snap_dialog',
-      //   params: {
-      //     type: 'Confirmation',
-      //     content: panel([
-      //       heading('Transaction Simulation with Tenderly'),
-      //       divider(),
-      //       heading(`Gas payment made on chain ID: ${gasPaymentChainId}`),
-      //       // text('Balance diff change:'),
-      //       // text('detail...'),
-      //       ...formattedTenderlySimulationOnGasPaymentResponse,
-      //       divider(),
-      //       heading(`Transaction made on chain ID: ${connectedChainId}`),
-      //       // text('Balance diff  change:'),
-      //       // text('detail...'),
-      //       ...formattedTenderlySimulationOnExecuteResponse,
-      //     ]),
-      //   },
-      // });
-
-      // if (!simlationResultConfirmResult) {
-      //   return null;
-      // }
-
-      console.log(
-        '7. If the user approves the transaction, send the gas payment transaction to the bundler.',
-      );
-      const sendGasPaymentUserOpToBundlerResult =
-        await gasPaymentChainBundler.sendUserOpToBundler(
-          resolvedGasPaymentUserOp2,
-        );
-
-      console.log(
-        'sendGasPaymentUserOpToBundlerResult',
-        sendGasPaymentUserOpToBundlerResult,
-      );
-
-      console.log(
-        '8. After the gas payment transaction is sent, send the execute transaction to the bundler.',
-      );
-      const sendExecuteUserOpToBundlerResult =
-        await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
-
-      console.log(
-        'sendExecuteUserOpToBundlerResult',
-        sendExecuteUserOpToBundlerResult,
-      );
-
-      return {
-        sendGasPaymentUserOpToBundlerResult,
-        sendExecuteUserOpToBundlerResult,
-      };
     }
     default:
       throw new Error('Method not found.');
