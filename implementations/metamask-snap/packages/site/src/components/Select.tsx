@@ -13,16 +13,17 @@ type SelectProps = {
 };
 
 const SelectBox = styled.select`
-  font-size: 1em;
+  font-size: ${({ theme }) => theme.fontSizes.small};
   padding: 0.5em;
   border-radius: 5px;
   border: none;
   background-color: #f7f7f7;
   color: #333;
+  cursor: pointer;
 `;
 
 const Option = styled.option`
-  font-size: 1em;
+  font-size: ${({ theme }) => theme.fontSizes.medium};
 `;
 
 const SelectWrapper = styled.div``;

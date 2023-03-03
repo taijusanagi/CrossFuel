@@ -4,7 +4,7 @@ import styled from 'styled-components';
 type CardProps = {
   content: {
     title?: string;
-    description: ReactNode;
+    description?: ReactNode;
     others?: ReactNode;
     button?: ReactNode;
   };
@@ -47,6 +47,7 @@ const Description = styled.div`
 `;
 
 const Others = styled.div`
+  margin-top: 2.4rem;
   margin-bottom: 2.4rem;
 `;
 
@@ -55,7 +56,7 @@ export const Card = ({ content, disabled = false, fullWidth }: CardProps) => {
   return (
     <CardWrapper fullWidth={fullWidth} disabled={disabled}>
       {title && <Title>{title}</Title>}
-      <Description>{description}</Description>
+      {description && <Description>{description}</Description>}
       {others && <Others>{others}</Others>}
       {button}
     </CardWrapper>

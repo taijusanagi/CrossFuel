@@ -18914,6 +18914,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"qrcode.react@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "qrcode.react@npm:3.1.0"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: 94a2942ecf83f461d869adb20305ae663c6d1abe93ef2c72442b07d756ce70cf6deb6fd588dc5b382b48c6991cfde1dfd5ac9b814c1461e71d5edb2d945e67fc
+  languageName: node
+  linkType: hard
+
 "qs@npm:6.11.0":
   version: 6.11.0
   resolution: "qs@npm:6.11.0"
@@ -20412,6 +20421,7 @@ __metadata:
     gatsby-plugin-svgr: ^3.0.0-beta.0
     prettier: ^2.2.1
     prettier-plugin-packagejson: ^2.2.18
+    qrcode.react: ^3.1.0
     react: ^18.2.0
     react-dom: ^18.2.0
     react-is: ^18.2.0

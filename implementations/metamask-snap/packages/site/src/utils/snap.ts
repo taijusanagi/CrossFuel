@@ -66,6 +66,26 @@ export const sendHello = async () => {
   });
 };
 
+export const getExternalOwnedAccount = async () => {
+  return (await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'aa_getExternalOwnedAccount' },
+    },
+  })) as string;
+};
+
+export const getAbstractAccount = async () => {
+  return (await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'aa_getAbstractAccount' },
+    },
+  })) as string;
+};
+
 export const sendAccountAbstraction = async (
   gasPaymentChainId: string,
   gasPaymentToken: string,
@@ -74,22 +94,10 @@ export const sendAccountAbstraction = async (
   console.log('gasPaymentChainId', gasPaymentChainId);
   console.log('gasPaymentToken', gasPaymentToken);
 
-  const eoaAddress = await window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'aa_getExternalOwnedAccount' },
-    },
-  });
+  const eoaAddress = await getExternalOwnedAccount();
   console.log('eoaAddress', eoaAddress);
 
-  const aaAddress = await window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId: defaultSnapOrigin,
-      request: { method: 'aa_getAbstractAccount' },
-    },
-  });
+  const aaAddress = await getAbstractAccount();
   console.log('aaAddress', aaAddress);
 
   if (gasPaymentToken === deployments.mockERC20Address) {

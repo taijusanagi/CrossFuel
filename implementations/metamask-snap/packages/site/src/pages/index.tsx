@@ -1,14 +1,18 @@
 import { useContext, useEffect, useState } from 'react';
+import { ethers } from 'ethers';
 import styled from 'styled-components';
+import { QRCodeSVG } from 'qrcode.react';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
   sendAccountAbstraction,
   shouldDisplayReconnectButton,
+  getAbstractAccount,
+  // getExternalOwnedAccount,
 } from '../utils';
 import {
-  ConnectButton,
+  // ConnectButton,
   InstallFlaskButton,
   ReconnectButton,
   SendAccountAbstractionButton,
@@ -16,7 +20,6 @@ import {
   Select,
   Form,
 } from '../components';
-
 import deployments from '../../../truffle/deployments.json';
 
 const Container = styled.div`
@@ -103,15 +106,89 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const CurrentBalance = styled.div`
+  font-size: ${({ theme }) => theme.fontSizes.small};
+`;
+
+const WalletAddress = styled.div`
+  font-size: 0.6em;
+`;
+
+const chainIdToCovalentChainName = (chainId: string) => {
+  if (chainId === '5') {
+    return 'eth-goerli';
+  }
+  return 'matic-mumbai';
+};
+
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [gasPaymentChainId, setGasPaymentChainId] = useState('5');
   const [gasPaymentTokenList, setGasPaymentTokenList] = useState([]);
+  // const [eoaWallet, setEOAWallet] = useState('');
+  const [aaWallet, setAAWallet] = useState('');
 
   // TODO: update using squid api
   const [gasPaymentToken, setGasPaymentToken] = useState(
     deployments.mockERC20Address,
   );
+
+  const [currentBalance, setCurrentBalance] = useState('');
+  const [isPossibleToProcessPayment, setIsPossibleToProcessPayment] =
+    useState(false);
+
+  useEffect(() => {
+    if (!aaWallet || !gasPaymentChainId || !gasPaymentToken) {
+      return;
+    }
+
+    setCurrentBalance('load balance from Covalent API...');
+    // TODO: put in a secure place.
+    const apiKey = 'ckey_9035cd75d41a4c24bde1cedfecc';
+    const chainName = chainIdToCovalentChainName(gasPaymentChainId);
+    fetch(
+      `https://api.covalenthq.com/v1/${chainName}/address/${aaWallet}/balances_v2/`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+      },
+    )
+      .then((response) => response.json())
+      .then(({ data }) => {
+        console.log(data);
+        const target = data.items.find(
+          (item: any) =>
+            item.contract_address.toLowerCase() ===
+            gasPaymentToken.toLowerCase(),
+        );
+        if (target === undefined) {
+          setCurrentBalance('You do not own this token.');
+          setIsPossibleToProcessPayment(false);
+        } else {
+          console.log(target);
+          setCurrentBalance(
+            `${ethers.utils.formatUnits(
+              target.balance,
+              target.contract_decimals,
+            )} ${target.contract_ticker_symbol}`,
+          );
+          setIsPossibleToProcessPayment(true);
+        }
+      })
+      .catch((error) => console.error(error));
+  }, [aaWallet, gasPaymentChainId, gasPaymentToken]);
+
+  useEffect(() => {
+    const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
+    if (!isFlaskConnected) {
+      return;
+    }
+    // getExternalOwnedAccount().then((address) => setEOAWallet(address));
+    getAbstractAccount().then((address) => setAAWallet(address));
+  }, [state.installedSnap]);
 
   useEffect(() => {
     if (!gasPaymentChainId) {
@@ -163,7 +240,7 @@ const Index = () => {
       <Heading>
         Welcome to <Span>CrossFuel</Span>
       </Heading>
-      <Subtitle>Cross-chain gas payment infrastructure</Subtitle>
+      <Subtitle>Cross-chain gas payment with AA</Subtitle>
       <CardContainer>
         {state.error && (
           <ErrorMessage>
@@ -181,7 +258,7 @@ const Index = () => {
             fullWidth
           />
         )}
-        {!state.installedSnap && (
+        {/* {!state.installedSnap && (
           <Card
             content={{
               title: 'Connect',
@@ -212,15 +289,44 @@ const Index = () => {
             }}
             disabled={!state.installedSnap}
           />
-        )}
+        )} */}
+
         <Card
           content={{
-            title: 'Cross-Chain Gas Payment with Account Abstraction',
-            description: 'Select payment method.',
+            title: 'Account Abstraction',
+            others: (
+              <>
+                {aaWallet && (
+                  <>
+                    <Form
+                      label="Address"
+                      input={<WalletAddress>{aaWallet}</WalletAddress>}
+                    />
+                    <Form
+                      label="Receive Fund"
+                      input={<QRCodeSVG value={aaWallet} />}
+                    />
+                  </>
+                )}
+              </>
+            ),
+            button: (
+              <ReconnectButton
+                onClick={handleConnectClick}
+                disabled={!state.installedSnap}
+              />
+            ),
+          }}
+          disabled={!state.installedSnap}
+        />
+
+        <Card
+          content={{
+            title: 'Cross-Chain Gas Payment',
             others: (
               <>
                 <Form
-                  label="Network"
+                  label="Payment Network"
                   input={
                     <Select
                       onChange={(e) => {
@@ -250,21 +356,20 @@ const Index = () => {
                     />
                   }
                 />
+                <Form
+                  label="Current Balance"
+                  input={<CurrentBalance>{currentBalance}</CurrentBalance>}
+                />
               </>
             ),
             button: (
               <SendAccountAbstractionButton
                 onClick={handleAccountAbstractionClick}
-                disabled={!state.installedSnap}
+                disabled={!state.installedSnap || !isPossibleToProcessPayment}
               />
             ),
           }}
           disabled={!state.installedSnap}
-          fullWidth={
-            state.isFlask &&
-            Boolean(state.installedSnap) &&
-            !shouldDisplayReconnectButton(state.installedSnap)
-          }
         />
         <Notice>
           <p>
