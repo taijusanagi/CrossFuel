@@ -255,12 +255,22 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         parseInt(connectedChainId, 10),
       );
 
-      console.log('process gas payment tx');
+      // 1. Generate an execute user operation.
+
+      // 2. Calculate the gas needed for the execute user operation created in step 1.
+      // 3. Create a gas payment user operation using the gas amount calculated in step 2.
+      // 4. Sign the gas payment user operation.
+      // 5. Sign the execute user operation.
+      // 6. Conduct a Tenderly simulation.
+      // 7. If the user approves the transaction, send the gas payment transaction to the bundler.
+      // 8. After the gas payment transaction is sent, send the execute transaction to the bundler.
 
       let paymentTokenAmount = '0';
       if (gasPaymentToken === deployments.mockERC20Address) {
         paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
       } else {
+        // TODO: implement gas calculation
+
         paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
       }
 
@@ -292,7 +302,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
       const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
 
-      console.log('process execute tx', target, data);
       currentChainId = connectedChainId;
       const executeOp1 = await executeAbstractAccount.createSignedUserOp({
         target,
