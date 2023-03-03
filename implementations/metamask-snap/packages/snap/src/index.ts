@@ -41,12 +41,10 @@ const chainName = {
 type ChainId = keyof typeof bundlerUrls;
 let currentChainId: ChainId | null;
 
-const gasPaymentChainId = '5';
-
 // TODO: replace with defender address
 const bundlerSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
 const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
-const beneficiary = verifyingPaymasterSigner;
+const fundManager = verifyingPaymasterSigner;
 
 // TODO: move to safe place
 const infuraProjectId = 'eedaad734dce46a4b08816a7f6df0b9b';
@@ -193,10 +191,15 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'send_aa_sendTransactionWithCrossFuel': {
       console.log('send_aa_sendTransactionWithCrossFuel');
 
-      const { target, data } = request.params as {
-        target: string;
-        data: string;
-      };
+      const { target, data, gasPaymentChainId, gasPaymentToken } =
+        request.params as {
+          target: string;
+          data: string;
+          gasPaymentChainId: ChainId;
+          gasPaymentToken: string;
+        };
+
+      const connectedChainId = await getConnectedChainId();
 
       console.log('confirm transaction...');
       const snapConfirmResult = await snap.request({
@@ -205,16 +208,17 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           type: 'Confirmation',
           content: panel([
             heading('Account Abstraction with Cross-Chain Gas Payment'),
-
             text(
               'By approving this request, you are authorizing Metamask Snap to access your private key and create a cross-chain batch transaction with gas payment.',
             ),
-
-            // TODO: make it dynamic
-            text('Gas Payment ChainId:'),
+            heading('Gas Payment'),
+            text('ChainId:'),
             copyable(gasPaymentChainId),
             text('Gas Payment Token:'),
-            copyable(deployments.mockERC20Address),
+            copyable(gasPaymentToken),
+            heading('Execute'),
+            text('ChainId:'),
+            copyable(connectedChainId),
             text('Target Address:'),
             copyable(target),
             text('Transaction Data:'),
@@ -228,9 +232,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       if (!snapConfirmResult) {
         return null;
       }
-
-      const connectedChainId = await getConnectedChainId();
-      console.log('connectedChainId', connectedChainId);
 
       console.log('init aa wallet');
       const gasPaymentAbstractAccount = await getAbstractAccount(
@@ -255,19 +256,24 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
 
       console.log('process gas payment tx');
+
+      let paymentTokenAmount = '0';
+      if (gasPaymentToken === deployments.mockERC20Address) {
+        paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
+      } else {
+        paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
+      }
+
       currentChainId = gasPaymentChainId;
-      const mockERO20 = new ethers.Contract(
-        deployments.mockERC20Address,
-        MockERC20Json.abi,
-      );
+      const mockERO20 = new ethers.Contract(gasPaymentToken, MockERC20Json.abi);
 
       const gasPaymentData = mockERO20.interface.encodeFunctionData(
         'transfer',
-        [verifyingPaymasterSigner, ethers.utils.parseEther('0.01')],
+        [verifyingPaymasterSigner, paymentTokenAmount],
       );
 
       const gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
-        target: deployments.mockERC20Address,
+        target: gasPaymentToken,
         data: gasPaymentData,
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
@@ -277,9 +283,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       // @dev: This is fix preVerificationGas too low bug
       // https://github.com/eth-infinitism/bundler/pull/7
       resolveGasPaymentUserOp1.preVerificationGas = 100000;
-
-      // some chain call gas limit calculation is wrong
-      // resolveGasPaymentUserOp1.callGasLimit = 21828;
 
       resolveGasPaymentUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolveGasPaymentUserOp1);
@@ -303,9 +306,6 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       // https://github.com/eth-infinitism/bundler/pull/7
       resolvedExecuteUserOp1.preVerificationGas = 100000;
 
-      // some chain call gas limit calculation is wrong
-      // resolvedExecuteUserOp1.callGasLimit = 21828;
-
       resolvedExecuteUserOp1.paymasterAndData =
         await paymasterAPI.getPaymasterAndData(resolvedExecuteUserOp1);
       const executeOp2 = await executeAbstractAccount.signUserOp(
@@ -328,7 +328,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       // const gasPaymentInput = entryPointInterface.encodeFunctionData(
       //   'handleOps',
-      //   [[resolvedGasPaymentUserOp2], beneficiary],
+      //   [[resolvedGasPaymentUserOp2], fundManager],
       // );
 
       // const tenderlySimulationOnGasPaymentResponse = await fetch(tenderlyURL, {
@@ -355,7 +355,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
 
       // const executeInput = entryPointInterface.encodeFunctionData('handleOps', [
       //   [resolvedExecuteUserOp2],
-      //   beneficiary,
+      //   fundManager,
       // ]);
 
       // const tenderlySimulationOnExecuteResponse = await fetch(tenderlyURL, {

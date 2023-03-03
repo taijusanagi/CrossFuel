@@ -66,7 +66,14 @@ export const sendHello = async () => {
   });
 };
 
-export const sendAccountAbstraction = async () => {
+export const sendAccountAbstraction = async (
+  gasPaymentChainId: string,
+  gasPaymentToken: string,
+) => {
+  console.log('sendAccountAbstraction');
+  console.log('gasPaymentChainId', gasPaymentChainId);
+  console.log('gasPaymentToken', gasPaymentToken);
+
   const eoaAddress = await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
@@ -85,20 +92,22 @@ export const sendAccountAbstraction = async () => {
   });
   console.log('aaAddress', aaAddress);
 
-  console.log('call mock payment token faucet in Georli');
-  const method = 'POST';
-  const headers = {
-    'Content-Type': 'application/json',
-  };
-  const { message } = await fetch('http://localhost:8001/faucet', {
-    method,
-    headers,
-    body: JSON.stringify({
-      chainId: window.ethereum.chainId,
-      to: aaAddress,
-    }),
-  }).then((res) => res.json());
-  console.log(message);
+  if (gasPaymentToken === deployments.mockERC20Address) {
+    console.log('call mock payment token faucet in Georli');
+    const method = 'POST';
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    const { message } = await fetch('http://localhost:8001/faucet', {
+      method,
+      headers,
+      body: JSON.stringify({
+        to: aaAddress,
+        chainId: gasPaymentChainId,
+      }),
+    }).then((res) => res.json());
+    console.log(message);
+  }
 
   const mockSBTClaim = new ethers.Contract(
     deployments.mockSBTClaim,
@@ -116,6 +125,8 @@ export const sendAccountAbstraction = async () => {
         params: {
           target: deployments.mockSBTClaim,
           data: claimSBTData,
+          gasPaymentChainId,
+          gasPaymentToken,
         },
       },
     },

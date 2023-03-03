@@ -2,8 +2,11 @@ import { useContext } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import { connectSnap, getThemePreference, getSnap } from '../utils';
+import { ReactComponent as LogoBlack } from '../assets/logo_black.svg';
+import { ReactComponent as LogoWhite } from '../assets/logo_white.svg';
+import { MyTheme } from '../config';
 import { HeaderButtons } from './Buttons';
-import { SnapLogo } from './SnapLogo';
+// import { SnapLogo } from './SnapLogo';
 import { Toggle } from './Toggle';
 
 const HeaderWrapper = styled.header`
@@ -15,15 +18,15 @@ const HeaderWrapper = styled.header`
   border-bottom: 1px solid ${(props) => props.theme.colors.border.default};
 `;
 
-const Title = styled.p`
-  font-size: ${(props) => props.theme.fontSizes.title};
-  font-weight: bold;
-  margin: 0;
-  margin-left: 1.2rem;
-  ${({ theme }) => theme.mediaQueries.small} {
-    display: none;
-  }
-`;
+// const Title = styled.p`
+//   font-size: ${(props) => props.theme.fontSizes.title};
+//   font-weight: bold;
+//   margin: 0;
+//   margin-left: 1.2rem;
+//   ${({ theme }) => theme.mediaQueries.small} {
+//     display: none;
+//   }
+// `;
 
 const LogoWrapper = styled.div`
   display: flex;
@@ -42,7 +45,7 @@ export const Header = ({
 }: {
   handleToggleClick(): void;
 }) => {
-  const theme = useTheme();
+  const theme = useTheme() as MyTheme;
   const [state, dispatch] = useContext(MetaMaskContext);
 
   const handleConnectClick = async () => {
@@ -62,8 +65,10 @@ export const Header = ({
   return (
     <HeaderWrapper>
       <LogoWrapper>
-        <SnapLogo color={theme.colors.icon.default} size={36} />
-        <Title>CrossFuel</Title>
+        {/* <SnapLogo color={theme.colors.icon.default} size={36} />
+        <Title>CrossFuel</Title> */}
+        {theme.mode === 'light' && <LogoBlack />}
+        {theme.mode === 'dark' && <LogoWhite />}
       </LogoWrapper>
       <RightContainer>
         <Toggle

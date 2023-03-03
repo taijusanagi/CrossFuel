@@ -43,8 +43,6 @@ const isChainId = (value: string): value is ChainId => {
   return Object.keys(chainName).includes(value);
 };
 
-const gasPaymentChainId = "5";
-
 const getDefenderSignerByChainId = (chainId: ChainId) => {
   const credentials =
     chainId == "5"
@@ -81,9 +79,9 @@ app.get("/getSupportedPaymentTokens", async (req: Request, res: Response) => {
 
 app.post("/faucet", async (req: Request, res: Response) => {
   console.log("faucet");
-  const { to } = req.body;
+  const { to, chainId } = req.body;
   // const { signer } = getSignerAndProviderForTargetChain(gasPaymentChainId);
-  const { signer } = getDefenderSignerByChainId(gasPaymentChainId);
+  const { signer } = getDefenderSignerByChainId(chainId);
   const mockERO20 = new ethers.Contract(deployments.mockERC20Address, MockERC20Json.abi, signer);
   const currentBalance = await mockERO20.balanceOf(to);
   const amount = 99;
