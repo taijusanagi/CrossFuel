@@ -319,143 +319,143 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
       console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
 
-      console.log('simulation...');
+      // console.log('simulation...');
 
-      const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
-      const entryPointInterface = new ethers.utils.Interface(
-        EntryPoint__factory.abi,
-      );
+      // const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
+      // const entryPointInterface = new ethers.utils.Interface(
+      //   EntryPoint__factory.abi,
+      // );
 
-      const gasPaymentInput = entryPointInterface.encodeFunctionData(
-        'handleOps',
-        [[resolvedGasPaymentUserOp2], beneficiary],
-      );
+      // const gasPaymentInput = entryPointInterface.encodeFunctionData(
+      //   'handleOps',
+      //   [[resolvedGasPaymentUserOp2], beneficiary],
+      // );
 
-      const tenderlySimulationOnGasPaymentResponse = await fetch(tenderlyURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Access-Key': tenderlyApiKey,
-        },
-        body: JSON.stringify({
-          /* Simulation Configuration */
-          save: false, // if true simulation is saved and shows up in the dashboard
-          save_if_fails: false, // if true, reverting simulations show up in the dashboard
-          simulation_type: 'full', // full or quick (full is default)
-          network_id: gasPaymentChainId, // network to simulate on
-          /* Standard EVM Transaction object */
-          from: bundlerSigner,
-          to: deployments.entryPointAddress,
-          input: gasPaymentInput,
-          gas: 1000000,
-          gas_price: resolvedGasPaymentUserOp2.maxFeePerGas.toString(),
-          value: 0,
-        }),
-      }).then((response) => response.json());
+      // const tenderlySimulationOnGasPaymentResponse = await fetch(tenderlyURL, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'X-Access-Key': tenderlyApiKey,
+      //   },
+      //   body: JSON.stringify({
+      //     /* Simulation Configuration */
+      //     save: false, // if true simulation is saved and shows up in the dashboard
+      //     save_if_fails: false, // if true, reverting simulations show up in the dashboard
+      //     simulation_type: 'full', // full or quick (full is default)
+      //     network_id: gasPaymentChainId, // network to simulate on
+      //     /* Standard EVM Transaction object */
+      //     from: bundlerSigner,
+      //     to: deployments.entryPointAddress,
+      //     input: gasPaymentInput,
+      //     gas: 1000000,
+      //     gas_price: resolvedGasPaymentUserOp2.maxFeePerGas.toString(),
+      //     value: 0,
+      //   }),
+      // }).then((response) => response.json());
 
-      const executeInput = entryPointInterface.encodeFunctionData('handleOps', [
-        [resolvedExecuteUserOp2],
-        beneficiary,
-      ]);
+      // const executeInput = entryPointInterface.encodeFunctionData('handleOps', [
+      //   [resolvedExecuteUserOp2],
+      //   beneficiary,
+      // ]);
 
-      const tenderlySimulationOnExecuteResponse = await fetch(tenderlyURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Access-Key': tenderlyApiKey,
-        },
-        body: JSON.stringify({
-          /* Simulation Configuration */
-          save: false, // if true simulation is saved and shows up in the dashboard
-          save_if_fails: false, // if true, reverting simulations show up in the dashboard
-          simulation_type: 'full', // full or quick (full is default)
-          network_id: connectedChainId, // network to simulate on
-          /* Standard EVM Transaction object */
-          from: bundlerSigner,
-          to: deployments.entryPointAddress,
-          input: executeInput,
-          gas: 1000000,
-          gas_price: resolvedExecuteUserOp2.maxFeePerGas.toString(),
-          value: 0,
-        }),
-      }).then((response) => response.json());
+      // const tenderlySimulationOnExecuteResponse = await fetch(tenderlyURL, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'X-Access-Key': tenderlyApiKey,
+      //   },
+      //   body: JSON.stringify({
+      //     /* Simulation Configuration */
+      //     save: false, // if true simulation is saved and shows up in the dashboard
+      //     save_if_fails: false, // if true, reverting simulations show up in the dashboard
+      //     simulation_type: 'full', // full or quick (full is default)
+      //     network_id: connectedChainId, // network to simulate on
+      //     /* Standard EVM Transaction object */
+      //     from: bundlerSigner,
+      //     to: deployments.entryPointAddress,
+      //     input: executeInput,
+      //     gas: 1000000,
+      //     gas_price: resolvedExecuteUserOp2.maxFeePerGas.toString(),
+      //     value: 0,
+      //   }),
+      // }).then((response) => response.json());
 
-      console.log(
-        'tenderlySimulationOnGasPaymentResponse',
-        tenderlySimulationOnGasPaymentResponse,
-      );
+      // console.log(
+      //   'tenderlySimulationOnGasPaymentResponse',
+      //   tenderlySimulationOnGasPaymentResponse,
+      // );
 
-      console.log(
-        'tenderlySimulationOnExecuteResponse',
-        tenderlySimulationOnExecuteResponse,
-      );
+      // console.log(
+      //   'tenderlySimulationOnExecuteResponse',
+      //   tenderlySimulationOnExecuteResponse,
+      // );
 
-      if (
-        tenderlySimulationOnGasPaymentResponse.error ||
-        tenderlySimulationOnExecuteResponse.error
-      ) {
-        return null;
-      }
+      // if (
+      //   tenderlySimulationOnGasPaymentResponse.error ||
+      //   tenderlySimulationOnExecuteResponse.error
+      // ) {
+      //   return null;
+      // }
 
-      // TODO: implement balance diff
-      // const gasPaymentBalanceChange =
-      //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.balance_diff.filter(
-      //     (balanceDiff: { address: string }) =>
-      //       balanceDiff.address === aaAccount,
+      // // TODO: implement balance diff
+      // // const gasPaymentBalanceChange =
+      // //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.balance_diff.filter(
+      // //     (balanceDiff: { address: string }) =>
+      // //       balanceDiff.address === aaAccount,
+      // //   );
+
+      // const formatTenderlySimlationLog = (log: any) => {
+      //   const name = log.name ? log.name : 'unknown';
+      //   const inputs = log.inputs
+      //     ? log.inputs.map((input: any) => [
+      //         text(input.soltype.name),
+      //         copyable(input.value.toString()),
+      //       ])
+      //     : [];
+      //   return panel([
+      //     heading(`${name} at`),
+      //     copyable(log.raw.address),
+      //     ...inputs.flat(),
+      //   ]);
+      // };
+
+      // const formattedTenderlySimulationOnGasPaymentResponse =
+      //   tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.logs.map(
+      //     (log: any) => {
+      //       return formatTenderlySimlationLog(log);
+      //     },
       //   );
 
-      const formatTenderlySimlationLog = (log: any) => {
-        const name = log.name ? log.name : 'unknown';
-        const inputs = log.inputs
-          ? log.inputs.map((input: any) => [
-              text(input.soltype.name),
-              copyable(input.value.toString()),
-            ])
-          : [];
-        return panel([
-          heading(`${name} at`),
-          copyable(log.raw.address),
-          ...inputs.flat(),
-        ]);
-      };
+      // const formattedTenderlySimulationOnExecuteResponse =
+      //   tenderlySimulationOnExecuteResponse.transaction.transaction_info.logs.map(
+      //     (log: any) => {
+      //       return formatTenderlySimlationLog(log);
+      //     },
+      //   );
 
-      const formattedTenderlySimulationOnGasPaymentResponse =
-        tenderlySimulationOnGasPaymentResponse.transaction.transaction_info.logs.map(
-          (log: any) => {
-            return formatTenderlySimlationLog(log);
-          },
-        );
+      // const simlationResultConfirmResult = await snap.request({
+      //   method: 'snap_dialog',
+      //   params: {
+      //     type: 'Confirmation',
+      //     content: panel([
+      //       heading('Transaction Simulation with Tenderly'),
+      //       divider(),
+      //       heading(`Gas payment made on chain ID: ${gasPaymentChainId}`),
+      //       // text('Balance diff change:'),
+      //       // text('detail...'),
+      //       ...formattedTenderlySimulationOnGasPaymentResponse,
+      //       divider(),
+      //       heading(`Transaction made on chain ID: ${connectedChainId}`),
+      //       // text('Balance diff  change:'),
+      //       // text('detail...'),
+      //       ...formattedTenderlySimulationOnExecuteResponse,
+      //     ]),
+      //   },
+      // });
 
-      const formattedTenderlySimulationOnExecuteResponse =
-        tenderlySimulationOnExecuteResponse.transaction.transaction_info.logs.map(
-          (log: any) => {
-            return formatTenderlySimlationLog(log);
-          },
-        );
-
-      const simlationResultConfirmResult = await snap.request({
-        method: 'snap_dialog',
-        params: {
-          type: 'Confirmation',
-          content: panel([
-            heading('Transaction Simulation with Tenderly'),
-            divider(),
-            heading(`Gas payment made on chain ID: ${gasPaymentChainId}`),
-            // text('Balance diff change:'),
-            // text('detail...'),
-            ...formattedTenderlySimulationOnGasPaymentResponse,
-            divider(),
-            heading(`Transaction made on chain ID: ${connectedChainId}`),
-            // text('Balance diff  change:'),
-            // text('detail...'),
-            ...formattedTenderlySimulationOnExecuteResponse,
-          ]),
-        },
-      });
-
-      if (!simlationResultConfirmResult) {
-        return null;
-      }
+      // if (!simlationResultConfirmResult) {
+      //   return null;
+      // }
 
       console.log('send to bundler...');
 

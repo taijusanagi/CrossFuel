@@ -10,6 +10,13 @@ import PaymasterJson from "../../metamask-snap/packages/truffle/build/VerifyingP
 
 import MockERC20Json from "../../metamask-snap/packages/truffle/build/MockERC20.json";
 
+import { Squid } from "@0xsquid/sdk";
+
+// instantiate the SDK
+const squid = new Squid({
+  baseUrl: "https://testnet.api.0xsquid.com", // for mainnet use "https://api.0xsquid.com"
+});
+
 dotenv.config();
 
 const port = process.env.PORT || "8001";
@@ -21,13 +28,20 @@ const port = process.env.PORT || "8001";
 const app: Express = express();
 app.use(cors());
 app.use(express.json());
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
 
-type ChainId = "5" | "80001";
+const chainName = {
+  "5": "goerli",
+  "80001": "polygon-mumbai",
+};
+type ChainId = keyof typeof chainName;
 
-// const chainName = {
-//   "5": "goerli",
-//   "80001": "polygon-mumbai",
-// };
+const isChainId = (value: string): value is ChainId => {
+  return Object.keys(chainName).includes(value);
+};
 
 const gasPaymentChainId = "5";
 
@@ -49,9 +63,20 @@ const getDefenderSignerByChainId = (chainId: ChainId) => {
 //   return { provider, signer };
 // };
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", async (req: Request, res: Response) => {
   console.log("hello");
   res.send("Hello");
+});
+
+app.get("/getSupportedPaymentTokens", async (req: Request, res: Response) => {
+  console.log("getSupportedPaymentTokens");
+  const { chainId } = req.query;
+  if (typeof chainId !== "string" || !isChainId(chainId)) {
+    res.send([]);
+    return;
+  }
+  await squid.init();
+  res.send(squid.tokens.filter((t) => t.chainId === parseInt(chainId)));
 });
 
 app.post("/faucet", async (req: Request, res: Response) => {
