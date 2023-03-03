@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
@@ -106,11 +106,33 @@ const ErrorMessage = styled.div`
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [gasPaymentChainId, setGasPaymentChainId] = useState('5');
+  const [gasPaymentTokenList, setGasPaymentTokenList] = useState([]);
 
   // TODO: update using squid api
   const [gasPaymentToken, setGasPaymentToken] = useState(
     deployments.mockERC20Address,
   );
+
+  useEffect(() => {
+    if (!gasPaymentChainId) {
+      return;
+    }
+
+    fetch(
+      `${'http://localhost:8001/getSupportedPaymentTokens'}?chainId=${gasPaymentChainId}`,
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        const _gasPaymentTokenList = data.map(({ address, name }: any) => {
+          return { value: address, label: name };
+        });
+        _gasPaymentTokenList.unshift({
+          value: deployments.mockERC20Address,
+          label: 'Mock Payment Token',
+        });
+        setGasPaymentTokenList(_gasPaymentTokenList);
+      });
+  }, [gasPaymentChainId]);
 
   const handleConnectClick = async () => {
     try {
@@ -214,7 +236,6 @@ const Index = () => {
                           label: 'Polygon Mumbai',
                         },
                       ]}
-                      disabled
                     />
                   }
                 />
@@ -225,16 +246,7 @@ const Index = () => {
                       onChange={(e) => {
                         setGasPaymentToken(e.target.value);
                       }}
-                      options={[
-                        {
-                          value: deployments.mockERC20Address,
-                          label: 'Mock Payment Token',
-                        },
-                        {
-                          value: '0x254d06f33bDc5b8ee05b2ea472107E300226659A',
-                          label: 'aUSDC',
-                        },
-                      ]}
+                      options={gasPaymentTokenList}
                     />
                   }
                 />
