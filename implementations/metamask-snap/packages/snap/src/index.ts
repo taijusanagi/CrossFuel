@@ -295,17 +295,32 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         '3. Create a gas payment user operation using the gas amount calculated in step 2.',
       );
       currentChainId = gasPaymentChainId;
-      const mockERO20 = new ethers.Contract(gasPaymentToken, MockERC20Json.abi);
-      const gasPaymentData = mockERO20.interface.encodeFunctionData(
-        'transfer',
-        [verifyingPaymasterSigner, paymentTokenAmount],
-      );
-      const gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
-        target: gasPaymentToken,
-        data: gasPaymentData,
-        maxFeePerGas: 0x6507a5d0,
-        maxPriorityFeePerGas: 0x6507a5c0,
-      });
+      let gasPaymentOp1;
+      if (gasPaymentToken === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') {
+        gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
+          target: fundManager,
+          data: '0x',
+          maxFeePerGas: 0x6507a5d0,
+          maxPriorityFeePerGas: 0x6507a5c0,
+          value: paymentTokenAmount,
+        });
+      } else {
+        const mockERO20 = new ethers.Contract(
+          gasPaymentToken,
+          MockERC20Json.abi,
+        );
+        const gasPaymentData = mockERO20.interface.encodeFunctionData(
+          'transfer',
+          [fundManager, paymentTokenAmount],
+        );
+        gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
+          target: gasPaymentToken,
+          data: gasPaymentData,
+          maxFeePerGas: 0x6507a5d0,
+          maxPriorityFeePerGas: 0x6507a5c0,
+        });
+      }
+
       const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
 
       console.log('4. Sign the gas payment user operation with paymaster.');
