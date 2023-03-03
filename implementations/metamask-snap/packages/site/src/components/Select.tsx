@@ -19,6 +19,7 @@ const SelectBox = styled.select`
   border: none;
   background-color: #f7f7f7;
   color: #333;
+  cursor: pointer;
 `;
 
 const Option = styled.option`

@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
+import { ethers } from 'ethers';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
@@ -105,9 +106,20 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const CurrentBalance = styled.div`
+  font-size: ${({ theme }) => theme.fontSizes.small};
+`;
+
 const WalletAddress = styled.div`
   font-size: 0.6em;
 `;
+
+const chainIdToCovalentChainName = (chainId: string) => {
+  if (chainId === '5') {
+    return 'eth-goerli';
+  }
+  return 'matic-mumbai';
+};
 
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
@@ -120,6 +132,54 @@ const Index = () => {
   const [gasPaymentToken, setGasPaymentToken] = useState(
     deployments.mockERC20Address,
   );
+
+  const [currentBalance, setCurrentBalance] = useState('');
+  const [isPossibleToProcessPayment, setIsPossibleToProcessPayment] =
+    useState(false);
+
+  useEffect(() => {
+    if (!aaWallet || !gasPaymentChainId || !gasPaymentToken) {
+      return;
+    }
+
+    setCurrentBalance('load balance from Covalent API...');
+    // TODO: put in a secure place.
+    const apiKey = 'ckey_9035cd75d41a4c24bde1cedfecc';
+    const chainName = chainIdToCovalentChainName(gasPaymentChainId);
+    fetch(
+      `https://api.covalenthq.com/v1/${chainName}/address/${aaWallet}/balances_v2/`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+      },
+    )
+      .then((response) => response.json())
+      .then(({ data }) => {
+        console.log(data);
+        const target = data.items.find(
+          (item: any) =>
+            item.contract_address.toLowerCase() ===
+            gasPaymentToken.toLowerCase(),
+        );
+        if (target === undefined) {
+          setCurrentBalance('You do not own this token.');
+          setIsPossibleToProcessPayment(false);
+        } else {
+          console.log(target);
+          setCurrentBalance(
+            `${ethers.utils.formatUnits(
+              target.balance,
+              target.contract_decimals,
+            )} ${target.contract_ticker_symbol}`,
+          );
+          setIsPossibleToProcessPayment(true);
+        }
+      })
+      .catch((error) => console.error(error));
+  }, [aaWallet, gasPaymentChainId, gasPaymentToken]);
 
   useEffect(() => {
     const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
@@ -180,7 +240,7 @@ const Index = () => {
       <Heading>
         Welcome to <Span>CrossFuel</Span>
       </Heading>
-      <Subtitle>Cross-chain gas payment infrastructure</Subtitle>
+      <Subtitle>Cross-chain gas payment with AA</Subtitle>
       <CardContainer>
         {state.error && (
           <ErrorMessage>
@@ -262,7 +322,7 @@ const Index = () => {
 
         <Card
           content={{
-            title: 'Cross-Chain Gas Payment with Account Abstraction',
+            title: 'Cross-Chain Gas Payment',
             others: (
               <>
                 <Form
@@ -296,13 +356,16 @@ const Index = () => {
                     />
                   }
                 />
-                <Form label="Current Balance" input={<></>} />
+                <Form
+                  label="Current Balance"
+                  input={<CurrentBalance>{currentBalance}</CurrentBalance>}
+                />
               </>
             ),
             button: (
               <SendAccountAbstractionButton
                 onClick={handleAccountAbstractionClick}
-                disabled={!state.installedSnap}
+                disabled={!state.installedSnap || !isPossibleToProcessPayment}
               />
             ),
           }}
