@@ -3280,7 +3280,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/providers@npm:5.7.2, @ethersproject/providers@npm:^5.7.0":
+"@ethersproject/providers@npm:5.7.2, @ethersproject/providers@npm:^5.7.0, @ethersproject/providers@npm:^5.7.2":
   version: 5.7.2
   resolution: "@ethersproject/providers@npm:5.7.2"
   dependencies:
@@ -20488,6 +20488,7 @@ __metadata:
   dependencies:
     "@account-abstraction/contracts": 0.5.0
     "@account-abstraction/sdk": 0.5.0
+    "@ethersproject/providers": ^5.7.2
     "@lavamoat/allow-scripts": ^2.0.3
     "@metamask/auto-changelog": ^2.6.0
     "@metamask/eslint-config": ^10.0.0

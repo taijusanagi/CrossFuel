@@ -115,11 +115,26 @@ const WalletAddress = styled.div`
   font-size: 0.6em;
 `;
 
+const isAxelarNativeToken = (address: string) => {
+  return address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+};
+
+const isMockGasPaymentToken = (address: string) => {
+  return address === deployments.mockERC20Address;
+};
+
 const chainIdToCovalentChainName = (chainId: string) => {
   if (chainId === '5') {
     return 'eth-goerli';
   }
   return 'matic-mumbai';
+};
+
+const chainIdToCovalentNativeToken = (chainId: string) => {
+  if (chainId === '5') {
+    return '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+  }
+  return '0x0000000000000000000000000000000000001010';
 };
 
 const Index = () => {
@@ -150,6 +165,11 @@ const Index = () => {
     // TODO: put in a secure place.
     const apiKey = 'ckey_9035cd75d41a4c24bde1cedfecc';
     const chainName = chainIdToCovalentChainName(gasPaymentChainId);
+
+    const adjustedGasPaymentToken = isAxelarNativeToken(gasPaymentToken)
+      ? chainIdToCovalentNativeToken(gasPaymentChainId)
+      : gasPaymentToken;
+
     fetch(
       `https://api.covalenthq.com/v1/${chainName}/address/${aaWallet}/balances_v2/`,
       {
@@ -164,13 +184,15 @@ const Index = () => {
       .then(({ data }) => {
         console.log(data);
         const target = data.items.find(
-          (item: any) =>
-            item.contract_address.toLowerCase() ===
-            gasPaymentToken.toLowerCase(),
+          (item: any) => item.contract_address === adjustedGasPaymentToken,
         );
         if (target === undefined) {
           setCurrentBalance('You do not own this token.');
-          setIsPossibleToProcessPayment(false);
+          if (isMockGasPaymentToken(gasPaymentToken)) {
+            setIsPossibleToProcessPayment(true);
+          } else {
+            setIsPossibleToProcessPayment(false);
+          }
         } else {
           console.log(target);
           setCurrentBalance(
