@@ -107,6 +107,7 @@ const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [gasPaymentChainId, setGasPaymentChainId] = useState('5');
 
+  // TODO: update using squid api
   const [gasPaymentToken, setGasPaymentToken] = useState(
     deployments.mockERC20Address,
   );

@@ -24,6 +24,8 @@ const port = process.env.PORT || "8001";
 // @dev: keep local signer implementation for zkSync integration
 // const mnemonicPhrase = process.env.MNEMONIC_PHRASE || "";
 // const infuraProjectId = process.env.INFURA_PROJECT_ID;
+const verifyingPaymasterSigner = "0x7f5aa4c071671ad22edc02bb8a081418bb6c484f";
+const fundManager = verifyingPaymasterSigner;
 
 const app: Express = express();
 app.use(cors());
@@ -75,6 +77,49 @@ app.get("/getSupportedPaymentTokens", async (req: Request, res: Response) => {
   }
   await squid.init();
   res.send(squid.tokens.filter((t) => t.chainId === parseInt(chainId)));
+});
+
+// @dev: This function calculates the required target gas amount based on the input parameters
+app.get("/getRequiredPaymentTokenAmount", async (req: Request, res: Response) => {
+  console.log("getRequiredAmountForSwap");
+  const { gasPaymentChainId, gasPaymentToken, executeChainId, gasWillBeUsed } = req.query as any;
+
+  console.log("gasPaymentChainId", gasPaymentChainId);
+  console.log("gasPaymentToken", gasPaymentToken);
+  console.log("executeChainId", executeChainId);
+  console.log("gasWillBeUsed", gasWillBeUsed);
+
+  await squid.init();
+
+  // The recipient of the funds is always the fund manager, so we set the recipient variable to the fund manager's address. The fund manager will receive the native token of the execute chain as payment.
+  const recipient = fundManager;
+  const nativeTokenOnExecuteChain = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
+  const { provider } = getDefenderSignerByChainId(executeChainId);
+
+  const gasPriceInDestinationChain = await provider.getGasPrice();
+  console.log("gasPriceInDestinationChain", gasPriceInDestinationChain.toString());
+  const requiredNativeTokenOnExecuteChain = gasPriceInDestinationChain.mul(gasWillBeUsed).toString();
+  console.log("requiredNativeTokenOnExecuteChain", requiredNativeTokenOnExecuteChain);
+
+  // TODO: consider Axelar fee and gas fee
+  const {
+    route: {
+      estimate: { toAmount },
+    },
+  } = await squid.getRoute({
+    fromChain: parseInt(executeChainId),
+    fromToken: nativeTokenOnExecuteChain,
+    fromAmount: requiredNativeTokenOnExecuteChain,
+    toChain: parseInt(gasPaymentChainId),
+    toToken: gasPaymentToken,
+    toAddress: recipient,
+    slippage: 1.0, // 1.00 = 1% max slippage across the entire route
+    enableForecall: true, // instant execution service, defaults to true
+    quoteOnly: false, // optional, defaults to false
+  });
+  console.log("requiredGasPaymentTokenAmount", toAmount);
+  res.send({ requiredGasPaymentTokenAmount: toAmount });
 });
 
 app.post("/faucet", async (req: Request, res: Response) => {

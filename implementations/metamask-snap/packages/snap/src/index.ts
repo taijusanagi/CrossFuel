@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-case-declarations */
+import * as qs from 'querystring';
 import {
   UserOperationStruct,
   EntryPoint__factory,
@@ -7,7 +8,6 @@ import {
 import { resolveProperties } from 'ethers/lib/utils';
 import { OnRpcRequestHandler } from '@metamask/snaps-types';
 import { panel, copyable, text, heading, divider } from '@metamask/snaps-ui';
-
 import { ethers } from 'ethers';
 import {
   HttpRpcClient,
@@ -199,7 +199,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           gasPaymentToken: string;
         };
 
-      const connectedChainId = await getConnectedChainId();
+      const executeChainId = await getConnectedChainId();
 
       console.log('confirm transaction...');
       const snapConfirmResult = await snap.request({
@@ -218,7 +218,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             copyable(gasPaymentToken),
             heading('Execute'),
             text('ChainId:'),
-            copyable(connectedChainId),
+            copyable(executeChainId),
             text('Target Address:'),
             copyable(target),
             text('Transaction Data:'),
@@ -237,7 +237,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       const gasPaymentAbstractAccount = await getAbstractAccount(
         gasPaymentChainId,
       );
-      const executeAbstractAccount = await getAbstractAccount(connectedChainId);
+      const executeAbstractAccount = await getAbstractAccount(executeChainId);
 
       const aaAccount = await executeAbstractAccount.getAccountAddress();
       console.log('aaAccount', aaAccount);
@@ -250,46 +250,59 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
 
       const executeChainBundler = new HttpRpcClient(
-        bundlerUrls[connectedChainId],
+        bundlerUrls[executeChainId],
         entryPoint,
-        parseInt(connectedChainId, 10),
+        parseInt(executeChainId, 10),
       );
 
       // 1. Generate an execute user operation.
+      currentChainId = executeChainId;
+      const executeOp1 = await executeAbstractAccount.createSignedUserOp({
+        target,
+        data,
+        maxFeePerGas: 0x6507a5d0,
+        maxPriorityFeePerGas: 0x6507a5c0,
+      });
 
       // 2. Calculate the gas needed for the execute user operation created in step 1.
-      // 3. Create a gas payment user operation using the gas amount calculated in step 2.
-      // 4. Sign the gas payment user operation.
-      // 5. Sign the execute user operation.
-      // 6. Conduct a Tenderly simulation.
-      // 7. If the user approves the transaction, send the gas payment transaction to the bundler.
-      // 8. After the gas payment transaction is sent, send the execute transaction to the bundler.
-
+      const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
+      const gasWillBeUsed = ethers.BigNumber.from(
+        resolvedExecuteUserOp1.callGasLimit,
+      )
+        .add(resolvedExecuteUserOp1.preVerificationGas)
+        .toString();
       let paymentTokenAmount = '0';
       if (gasPaymentToken === deployments.mockERC20Address) {
         paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
       } else {
-        // TODO: implement gas calculation
-
-        paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
+        const params = {
+          gasPaymentChainId,
+          gasPaymentToken,
+          executeChainId,
+          gasWillBeUsed,
+        };
+        const queryString = qs.stringify(params);
+        const { requiredGasPaymentTokenAmount } = await fetch(
+          `${'http://localhost:8001/getRequiredPaymentTokenAmount'}?${queryString}`,
+        ).then((response) => response.json());
+        paymentTokenAmount = requiredGasPaymentTokenAmount;
       }
 
+      // 3. Create a gas payment user operation using the gas amount calculated in step 2.
       currentChainId = gasPaymentChainId;
       const mockERO20 = new ethers.Contract(gasPaymentToken, MockERC20Json.abi);
-
       const gasPaymentData = mockERO20.interface.encodeFunctionData(
         'transfer',
         [verifyingPaymasterSigner, paymentTokenAmount],
       );
-
       const gasPaymentOp1 = await gasPaymentAbstractAccount.createSignedUserOp({
         target: gasPaymentToken,
         data: gasPaymentData,
         maxFeePerGas: 0x6507a5d0,
         maxPriorityFeePerGas: 0x6507a5c0,
       });
-
       const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
+      // 4. Sign the gas payment user operation with paymaster.
       // @dev: This is fix preVerificationGas too low bug
       // https://github.com/eth-infinitism/bundler/pull/7
       resolveGasPaymentUserOp1.preVerificationGas = 100000;
@@ -302,17 +315,10 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
       const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
 
-      currentChainId = connectedChainId;
-      const executeOp1 = await executeAbstractAccount.createSignedUserOp({
-        target,
-        data,
-        maxFeePerGas: 0x6507a5d0,
-        maxPriorityFeePerGas: 0x6507a5c0,
-      });
-
-      const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
+      // 5. Sign the execute user operation with paymaster.
       // @dev: This is fix preVerificationGas too low bug
       // https://github.com/eth-infinitism/bundler/pull/7
+      currentChainId = executeChainId;
       resolvedExecuteUserOp1.preVerificationGas = 100000;
 
       resolvedExecuteUserOp1.paymasterAndData =
@@ -328,6 +334,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
       console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
 
+      // 6. Conduct a Tenderly simulation.
       // console.log('simulation...');
 
       // const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
@@ -465,6 +472,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       // if (!simlationResultConfirmResult) {
       //   return null;
       // }
+
+      // 7. If the user approves the transaction, send the gas payment transaction to the bundler.
+      // 8. After the gas payment transaction is sent, send the execute transaction to the bundler.
 
       console.log('send to bundler...');
 
