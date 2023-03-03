@@ -113,11 +113,12 @@ const main = async () => {
       );
 
       const deposit = await paymasterContract.getDeposit();
-      if (deposit.lt(ethers.utils.parseEther('0.02'))) {
+      if (deposit.lt(ethers.utils.parseEther('1'))) {
         console.log('paymaster deposit is too low');
-        await paymasterContract.deposit({
-          value: ethers.utils.parseEther('0.03'),
+        const tx = await paymasterContract.deposit({
+          value: ethers.utils.parseEther('1'),
         });
+        await tx.wait();
         console.log('depositted');
       }
 
@@ -139,18 +140,6 @@ const main = async () => {
         MockERC20Json.abi,
         signer,
       );
-
-      const balance = await mockERC20Contract.balanceOf(
-        verifyingPaymasterSigner,
-      );
-      if (balance.eq('0')) {
-        console.log('mock payment token deposit is too low');
-        await mockERC20Contract.mint(
-          verifyingPaymasterSigner,
-          ethers.utils.parseEther('0.01'),
-        );
-        console.log('depositted');
-      }
 
       console.log('====== Mock SBT Claim ======');
       const mockSBTClaimDeploymentCode = MockSBTClaimJson.bytecode;
