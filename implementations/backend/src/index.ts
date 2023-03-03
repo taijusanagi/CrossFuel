@@ -143,8 +143,13 @@ app.post("/faucet", async (req: Request, res: Response) => {
 });
 
 app.post("/sign", async (req: Request, res: Response) => {
-  console.log("sign");
   const { chainId, userOp } = req.body;
+  console.log("sign chainId:", chainId);
+  if (!userOp.signature) {
+    console.log("user sign is null, return null paymaster signature");
+  } else {
+    console.log("return actual paymaster signature with user sign");
+  }
   const { paymasterAddress } = deployments;
   // const { provider, signer } = getSignerAndProviderForTargetChain(chainId);
   const { provider, signer } = getDefenderSignerByChainId(chainId);

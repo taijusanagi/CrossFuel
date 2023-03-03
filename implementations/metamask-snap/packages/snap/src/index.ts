@@ -255,7 +255,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         parseInt(executeChainId, 10),
       );
 
-      // 1. Generate an execute user operation.
+      console.log('1. Generate an execute user operation.');
       currentChainId = executeChainId;
       const executeOp1 = await executeAbstractAccount.createSignedUserOp({
         target,
@@ -264,7 +264,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         maxPriorityFeePerGas: 0x6507a5c0,
       });
 
-      // 2. Calculate the gas needed for the execute user operation created in step 1.
+      console.log(
+        '2. Calculate the gas needed for the execute user operation created in step 1.',
+      );
       const resolvedExecuteUserOp1 = await resolveProperties(executeOp1);
       const gasWillBeUsed = ethers.BigNumber.from(
         resolvedExecuteUserOp1.callGasLimit,
@@ -273,6 +275,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         .toString();
       let paymentTokenAmount = '0';
       if (gasPaymentToken === deployments.mockERC20Address) {
+        // @dev: Since there is no currency conversion for the mock ERC20, a fixed amount is being used.
         paymentTokenAmount = ethers.utils.parseEther('0.01').toString();
       } else {
         const params = {
@@ -285,10 +288,12 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         const { requiredGasPaymentTokenAmount } = await fetch(
           `${'http://localhost:8001/getRequiredPaymentTokenAmount'}?${queryString}`,
         ).then((response) => response.json());
-        paymentTokenAmount = requiredGasPaymentTokenAmount;
+        paymentTokenAmount = requiredGasPaymentTokenAmount.toString();
       }
 
-      // 3. Create a gas payment user operation using the gas amount calculated in step 2.
+      console.log(
+        '3. Create a gas payment user operation using the gas amount calculated in step 2.',
+      );
       currentChainId = gasPaymentChainId;
       const mockERO20 = new ethers.Contract(gasPaymentToken, MockERC20Json.abi);
       const gasPaymentData = mockERO20.interface.encodeFunctionData(
@@ -302,7 +307,8 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         maxPriorityFeePerGas: 0x6507a5c0,
       });
       const resolveGasPaymentUserOp1 = await resolveProperties(gasPaymentOp1);
-      // 4. Sign the gas payment user operation with paymaster.
+
+      console.log('4. Sign the gas payment user operation with paymaster.');
       // @dev: This is fix preVerificationGas too low bug
       // https://github.com/eth-infinitism/bundler/pull/7
       resolveGasPaymentUserOp1.preVerificationGas = 100000;
@@ -315,7 +321,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       );
       const resolvedGasPaymentUserOp2 = await resolveProperties(gasPaymentOp2);
 
-      // 5. Sign the execute user operation with paymaster.
+      console.log('5. Sign the execute user operation with paymaster.');
       // @dev: This is fix preVerificationGas too low bug
       // https://github.com/eth-infinitism/bundler/pull/7
       currentChainId = executeChainId;
@@ -334,7 +340,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       console.log('resolvedGasPaymentUserOp2', resolvedGasPaymentUserOp2);
       console.log('resolvedExecuteUserOp2', resolvedExecuteUserOp2);
 
-      // 6. Conduct a Tenderly simulation.
+      console.log('6. Conduct a Tenderly simulation.');
       // console.log('simulation...');
 
       // const tenderlyURL = `https://api.tenderly.co/api/v1/account/${tenderlyUser}/project/${tenderlyProject}/simulate`;
@@ -473,23 +479,24 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
       //   return null;
       // }
 
-      // 7. If the user approves the transaction, send the gas payment transaction to the bundler.
-      // 8. After the gas payment transaction is sent, send the execute transaction to the bundler.
-
-      console.log('send to bundler...');
-
-      const [
-        sendGasPaymentUserOpToBundlerResult,
-        sendExecuteUserOpToBundlerResult,
-      ] = await Promise.all([
-        gasPaymentChainBundler.sendUserOpToBundler(resolvedGasPaymentUserOp2),
-        executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2),
-      ]);
+      console.log(
+        '7. If the user approves the transaction, send the gas payment transaction to the bundler.',
+      );
+      const sendGasPaymentUserOpToBundlerResult =
+        await gasPaymentChainBundler.sendUserOpToBundler(
+          resolvedGasPaymentUserOp2,
+        );
 
       console.log(
         'sendGasPaymentUserOpToBundlerResult',
         sendGasPaymentUserOpToBundlerResult,
       );
+
+      console.log(
+        '8. After the gas payment transaction is sent, send the execute transaction to the bundler.',
+      );
+      const sendExecuteUserOpToBundlerResult =
+        await executeChainBundler.sendUserOpToBundler(resolvedExecuteUserOp2);
 
       console.log(
         'sendExecuteUserOpToBundlerResult',
