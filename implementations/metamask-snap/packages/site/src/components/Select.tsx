@@ -13,7 +13,7 @@ type SelectProps = {
 };
 
 const SelectBox = styled.select`
-  font-size: 1em;
+  font-size: ${({ theme }) => theme.fontSizes.small};
   padding: 0.5em;
   border-radius: 5px;
   border: none;
@@ -22,7 +22,7 @@ const SelectBox = styled.select`
 `;
 
 const Option = styled.option`
-  font-size: 1em;
+  font-size: ${({ theme }) => theme.fontSizes.medium};
 `;
 
 const SelectWrapper = styled.div``;

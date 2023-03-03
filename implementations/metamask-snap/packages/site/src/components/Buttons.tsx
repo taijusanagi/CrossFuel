@@ -105,6 +105,7 @@ export const SendAccountAbstractionButton = (
   return (
     <Button {...props}>
       <Diamond />
+
       <ButtonText>Demo - Claim MockSBT</ButtonText>
     </Button>
   );

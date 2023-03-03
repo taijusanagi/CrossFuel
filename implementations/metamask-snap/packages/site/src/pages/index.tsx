@@ -1,14 +1,17 @@
 import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { QRCodeSVG } from 'qrcode.react';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
   getSnap,
   sendAccountAbstraction,
   shouldDisplayReconnectButton,
+  getAbstractAccount,
+  // getExternalOwnedAccount,
 } from '../utils';
 import {
-  ConnectButton,
+  // ConnectButton,
   InstallFlaskButton,
   ReconnectButton,
   SendAccountAbstractionButton,
@@ -16,7 +19,6 @@ import {
   Select,
   Form,
 } from '../components';
-
 import deployments from '../../../truffle/deployments.json';
 
 const Container = styled.div`
@@ -103,15 +105,30 @@ const ErrorMessage = styled.div`
   }
 `;
 
+const WalletAddress = styled.div`
+  font-size: 0.6em;
+`;
+
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
   const [gasPaymentChainId, setGasPaymentChainId] = useState('5');
   const [gasPaymentTokenList, setGasPaymentTokenList] = useState([]);
+  // const [eoaWallet, setEOAWallet] = useState('');
+  const [aaWallet, setAAWallet] = useState('');
 
   // TODO: update using squid api
   const [gasPaymentToken, setGasPaymentToken] = useState(
     deployments.mockERC20Address,
   );
+
+  useEffect(() => {
+    const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
+    if (!isFlaskConnected) {
+      return;
+    }
+    // getExternalOwnedAccount().then((address) => setEOAWallet(address));
+    getAbstractAccount().then((address) => setAAWallet(address));
+  }, [state.installedSnap]);
 
   useEffect(() => {
     if (!gasPaymentChainId) {
@@ -181,7 +198,7 @@ const Index = () => {
             fullWidth
           />
         )}
-        {!state.installedSnap && (
+        {/* {!state.installedSnap && (
           <Card
             content={{
               title: 'Connect',
@@ -212,15 +229,44 @@ const Index = () => {
             }}
             disabled={!state.installedSnap}
           />
-        )}
+        )} */}
+
+        <Card
+          content={{
+            title: 'Account Abstraction',
+            others: (
+              <>
+                {aaWallet && (
+                  <>
+                    <Form
+                      label="Address"
+                      input={<WalletAddress>{aaWallet}</WalletAddress>}
+                    />
+                    <Form
+                      label="Receive Fund"
+                      input={<QRCodeSVG value={aaWallet} />}
+                    />
+                  </>
+                )}
+              </>
+            ),
+            button: (
+              <ReconnectButton
+                onClick={handleConnectClick}
+                disabled={!state.installedSnap}
+              />
+            ),
+          }}
+          disabled={!state.installedSnap}
+        />
+
         <Card
           content={{
             title: 'Cross-Chain Gas Payment with Account Abstraction',
-            description: 'Select payment method.',
             others: (
               <>
                 <Form
-                  label="Network"
+                  label="Payment Network"
                   input={
                     <Select
                       onChange={(e) => {
@@ -250,6 +296,7 @@ const Index = () => {
                     />
                   }
                 />
+                <Form label="Current Balance" input={<></>} />
               </>
             ),
             button: (
@@ -260,11 +307,6 @@ const Index = () => {
             ),
           }}
           disabled={!state.installedSnap}
-          fullWidth={
-            state.isFlask &&
-            Boolean(state.installedSnap) &&
-            !shouldDisplayReconnectButton(state.installedSnap)
-          }
         />
         <Notice>
           <p>
