@@ -1,8 +1,7 @@
 # CrossFuel
 
-CrossFuel is a seamless cross-chain gas payment infrastructure that leverages Account Abstraction.
-
-With CrossFuel, users can easily pay gas fees for dApps across multiple chains, making it easy to interact with different blockchains without worrying about swapping tokens or bridging them between chains.
+CrossFuel is a payment system that simplifies gas fees for dApps on different blockchains using Account Abstraction.
+It eliminates the need to swap or bridge tokens, making transactions across multiple chains effortless.
 
 ![banner](./docs/banner_wide.png)
 

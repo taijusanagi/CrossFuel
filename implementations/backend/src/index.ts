@@ -10,6 +10,13 @@ import PaymasterJson from "../../metamask-snap/packages/truffle/build/VerifyingP
 
 import MockERC20Json from "../../metamask-snap/packages/truffle/build/MockERC20.json";
 
+import { Squid } from "@0xsquid/sdk";
+
+// instantiate the SDK
+const squid = new Squid({
+  baseUrl: "https://testnet.api.0xsquid.com", // for mainnet use "https://api.0xsquid.com"
+});
+
 dotenv.config();
 
 const port = process.env.PORT || "8001";
@@ -17,19 +24,26 @@ const port = process.env.PORT || "8001";
 // @dev: keep local signer implementation for zkSync integration
 // const mnemonicPhrase = process.env.MNEMONIC_PHRASE || "";
 // const infuraProjectId = process.env.INFURA_PROJECT_ID;
+const verifyingPaymasterSigner = "0x7f5aa4c071671ad22edc02bb8a081418bb6c484f";
+const fundManager = verifyingPaymasterSigner;
 
 const app: Express = express();
 app.use(cors());
 app.use(express.json());
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
 
-type ChainId = "5" | "80001";
+const chainName = {
+  "5": "goerli",
+  "80001": "polygon-mumbai",
+};
+type ChainId = keyof typeof chainName;
 
-// const chainName = {
-//   "5": "goerli",
-//   "80001": "polygon-mumbai",
-// };
-
-const gasPaymentChainId = "5";
+const isChainId = (value: string): value is ChainId => {
+  return Object.keys(chainName).includes(value);
+};
 
 const getDefenderSignerByChainId = (chainId: ChainId) => {
   const credentials =
@@ -49,16 +63,70 @@ const getDefenderSignerByChainId = (chainId: ChainId) => {
 //   return { provider, signer };
 // };
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", async (req: Request, res: Response) => {
   console.log("hello");
   res.send("Hello");
 });
 
+app.get("/getSupportedPaymentTokens", async (req: Request, res: Response) => {
+  console.log("getSupportedPaymentTokens");
+  const { chainId } = req.query;
+  if (typeof chainId !== "string" || !isChainId(chainId)) {
+    res.send([]);
+    return;
+  }
+  await squid.init();
+  res.send(squid.tokens.filter((t) => t.chainId === parseInt(chainId)));
+});
+
+// @dev: This function calculates the required target gas amount based on the input parameters
+app.get("/getRequiredPaymentTokenAmount", async (req: Request, res: Response) => {
+  console.log("getRequiredAmountForSwap");
+  const { gasPaymentChainId, gasPaymentToken, executeChainId, gasWillBeUsed } = req.query as any;
+
+  console.log("gasPaymentChainId", gasPaymentChainId);
+  console.log("gasPaymentToken", gasPaymentToken);
+  console.log("executeChainId", executeChainId);
+  console.log("gasWillBeUsed", gasWillBeUsed);
+
+  await squid.init();
+
+  // The recipient of the funds is always the fund manager, so we set the recipient variable to the fund manager's address. The fund manager will receive the native token of the execute chain as payment.
+  const recipient = fundManager;
+  const nativeTokenOnExecuteChain = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
+  const { provider } = getDefenderSignerByChainId(executeChainId);
+
+  const gasPriceInDestinationChain = await provider.getGasPrice();
+  console.log("gasPriceInDestinationChain", gasPriceInDestinationChain.toString());
+  const requiredNativeTokenOnExecuteChain = gasPriceInDestinationChain.mul(gasWillBeUsed).toString();
+  console.log("requiredNativeTokenOnExecuteChain", requiredNativeTokenOnExecuteChain);
+
+  // TODO: consider Axelar fee and gas fee
+  const {
+    route: {
+      estimate: { toAmount },
+    },
+  } = await squid.getRoute({
+    fromChain: parseInt(executeChainId),
+    fromToken: nativeTokenOnExecuteChain,
+    fromAmount: requiredNativeTokenOnExecuteChain,
+    toChain: parseInt(gasPaymentChainId),
+    toToken: gasPaymentToken,
+    toAddress: recipient,
+    slippage: 1.0, // 1.00 = 1% max slippage across the entire route
+    enableForecall: true, // instant execution service, defaults to true
+    quoteOnly: false, // optional, defaults to false
+  });
+  console.log("requiredGasPaymentTokenAmount", toAmount);
+  res.send({ requiredGasPaymentTokenAmount: toAmount });
+});
+
 app.post("/faucet", async (req: Request, res: Response) => {
   console.log("faucet");
-  const { to } = req.body;
+  const { to, chainId } = req.body;
   // const { signer } = getSignerAndProviderForTargetChain(gasPaymentChainId);
-  const { signer } = getDefenderSignerByChainId(gasPaymentChainId);
+  const { signer } = getDefenderSignerByChainId(chainId);
   const mockERO20 = new ethers.Contract(deployments.mockERC20Address, MockERC20Json.abi, signer);
   const currentBalance = await mockERO20.balanceOf(to);
   const amount = 99;
@@ -75,8 +143,13 @@ app.post("/faucet", async (req: Request, res: Response) => {
 });
 
 app.post("/sign", async (req: Request, res: Response) => {
-  console.log("sign");
   const { chainId, userOp } = req.body;
+  console.log("sign chainId:", chainId);
+  if (!userOp.signature) {
+    console.log("user sign is null, return null paymaster signature");
+  } else {
+    console.log("return actual paymaster signature with user sign");
+  }
   const { paymasterAddress } = deployments;
   // const { provider, signer } = getSignerAndProviderForTargetChain(chainId);
   const { provider, signer } = getDefenderSignerByChainId(chainId);

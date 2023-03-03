@@ -2,6 +2,10 @@ import { createGlobalStyle, DefaultTheme } from 'styled-components';
 
 const breakpoints = ['600px', '768px', '992px'];
 
+export type MyTheme = {
+  mode: string;
+} & DefaultTheme;
+
 /**
  * Common theme properties.
  */
@@ -38,7 +42,8 @@ const theme = {
 /**
  * Light theme color properties.
  */
-export const light: DefaultTheme = {
+export const light: MyTheme = {
+  mode: 'light',
   colors: {
     background: {
       default: '#FFFFFF',
@@ -77,7 +82,8 @@ export const light: DefaultTheme = {
 /**
  * Dark theme color properties
  */
-export const dark: DefaultTheme = {
+export const dark: MyTheme = {
+  mode: 'dark',
   colors: {
     background: {
       default: '#24272A',

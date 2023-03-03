@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
@@ -13,7 +13,11 @@ import {
   ReconnectButton,
   SendAccountAbstractionButton,
   Card,
+  Select,
+  Form,
 } from '../components';
+
+import deployments from '../../../truffle/deployments.json';
 
 const Container = styled.div`
   display: flex;
@@ -101,6 +105,34 @@ const ErrorMessage = styled.div`
 
 const Index = () => {
   const [state, dispatch] = useContext(MetaMaskContext);
+  const [gasPaymentChainId, setGasPaymentChainId] = useState('5');
+  const [gasPaymentTokenList, setGasPaymentTokenList] = useState([]);
+
+  // TODO: update using squid api
+  const [gasPaymentToken, setGasPaymentToken] = useState(
+    deployments.mockERC20Address,
+  );
+
+  useEffect(() => {
+    if (!gasPaymentChainId) {
+      return;
+    }
+
+    fetch(
+      `${'http://localhost:8001/getSupportedPaymentTokens'}?chainId=${gasPaymentChainId}`,
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        const _gasPaymentTokenList = data.map(({ address, name }: any) => {
+          return { value: address, label: name };
+        });
+        _gasPaymentTokenList.unshift({
+          value: deployments.mockERC20Address,
+          label: 'Mock Payment Token',
+        });
+        setGasPaymentTokenList(_gasPaymentTokenList);
+      });
+  }, [gasPaymentChainId]);
 
   const handleConnectClick = async () => {
     try {
@@ -119,7 +151,7 @@ const Index = () => {
 
   const handleAccountAbstractionClick = async () => {
     try {
-      await sendAccountAbstraction();
+      await sendAccountAbstraction(gasPaymentChainId, gasPaymentToken);
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -183,9 +215,43 @@ const Index = () => {
         )}
         <Card
           content={{
-            title: 'Account Abstraction',
-            description:
-              'Create Account Abstraction transaction with MetaMask.',
+            title: 'Cross-Chain Gas Payment with Account Abstraction',
+            description: 'Select payment method.',
+            others: (
+              <>
+                <Form
+                  label="Network"
+                  input={
+                    <Select
+                      onChange={(e) => {
+                        setGasPaymentChainId(e.target.value);
+                      }}
+                      options={[
+                        {
+                          value: '5',
+                          label: 'Goerli',
+                        },
+                        {
+                          value: '80001',
+                          label: 'Polygon Mumbai',
+                        },
+                      ]}
+                    />
+                  }
+                />
+                <Form
+                  label="Payment Token"
+                  input={
+                    <Select
+                      onChange={(e) => {
+                        setGasPaymentToken(e.target.value);
+                      }}
+                      options={gasPaymentTokenList}
+                    />
+                  }
+                />
+              </>
+            ),
             button: (
               <SendAccountAbstractionButton
                 onClick={handleAccountAbstractionClick}
@@ -202,10 +268,11 @@ const Index = () => {
         />
         <Notice>
           <p>
-            Please note that the <b>snap.manifest.json</b> and{' '}
-            <b>package.json</b> must be located in the server root directory and
-            the bundle must be hosted at the location specified by the location
-            field.
+            CrossFuel is a payment system that simplifies gas fees for dApps on
+            different blockchains using
+            <b> Account Abstraction</b>. It eliminates the need to swap or
+            bridge tokens, making transactions across multiple chains
+            effortless.
           </p>
         </Notice>
       </CardContainer>
