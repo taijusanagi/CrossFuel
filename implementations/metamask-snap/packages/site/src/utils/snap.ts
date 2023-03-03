@@ -89,10 +89,12 @@ export const getAbstractAccount = async () => {
 export const sendAccountAbstraction = async (
   gasPaymentChainId: string,
   gasPaymentToken: string,
+  isTenderlySimulationEnabled: boolean,
 ) => {
   console.log('sendAccountAbstraction');
   console.log('gasPaymentChainId', gasPaymentChainId);
   console.log('gasPaymentToken', gasPaymentToken);
+  console.log('isTenderlySimulationEnabled', isTenderlySimulationEnabled);
 
   const eoaAddress = await getExternalOwnedAccount();
   console.log('eoaAddress', eoaAddress);
@@ -135,6 +137,7 @@ export const sendAccountAbstraction = async (
           data: claimSBTData,
           gasPaymentChainId,
           gasPaymentToken,
+          isTenderlySimulationEnabled,
         },
       },
     },

@@ -19,6 +19,7 @@ import {
   Card,
   Select,
   Form,
+  Checkbox,
 } from '../components';
 import deployments from '../../../truffle/deployments.json';
 
@@ -137,6 +138,9 @@ const Index = () => {
   const [isPossibleToProcessPayment, setIsPossibleToProcessPayment] =
     useState(false);
 
+  const [isTenderlySimulationEnabled, setIsTenderlySimulationEnabled] =
+    useState(false);
+
   useEffect(() => {
     if (!aaWallet || !gasPaymentChainId || !gasPaymentToken) {
       return;
@@ -228,7 +232,11 @@ const Index = () => {
 
   const handleAccountAbstractionClick = async () => {
     try {
-      await sendAccountAbstraction(gasPaymentChainId, gasPaymentToken);
+      await sendAccountAbstraction(
+        gasPaymentChainId,
+        gasPaymentToken,
+        isTenderlySimulationEnabled,
+      );
     } catch (e) {
       console.error(e);
       dispatch({ type: MetamaskActions.SetError, payload: e });
@@ -326,7 +334,7 @@ const Index = () => {
             others: (
               <>
                 <Form
-                  label="Payment Network"
+                  label="Network"
                   input={
                     <Select
                       onChange={(e) => {
@@ -346,7 +354,7 @@ const Index = () => {
                   }
                 />
                 <Form
-                  label="Payment Token"
+                  label="Token"
                   input={
                     <Select
                       onChange={(e) => {
@@ -357,8 +365,15 @@ const Index = () => {
                   }
                 />
                 <Form
-                  label="Current Balance"
+                  label="Balance"
                   input={<CurrentBalance>{currentBalance}</CurrentBalance>}
+                />
+                <Checkbox
+                  label="Enable Tenderly simulation"
+                  checked={isTenderlySimulationEnabled}
+                  onChange={(e) => {
+                    setIsTenderlySimulationEnabled(e.target.checked);
+                  }}
                 />
               </>
             ),

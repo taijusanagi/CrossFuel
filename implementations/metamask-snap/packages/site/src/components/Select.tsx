@@ -17,7 +17,7 @@ const SelectBox = styled.select`
   padding: 0.5em;
   border-radius: 5px;
   border: none;
-  background-color: #f7f7f7;
+  background-color: #f2f2f2;
   color: #333;
   cursor: pointer;
 `;

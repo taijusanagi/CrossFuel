@@ -13,7 +13,7 @@ const FormGroup = styled.div`
 `;
 
 const Label = styled.label`
-  margin-bottom: 0.6em;
+  margin-bottom: 0.5em;
   font-weight: bold;
 `;
 
