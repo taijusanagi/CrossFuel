@@ -169,22 +169,28 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           ]),
         },
       });
-    case 'aa_getExternalOwnedAccount': {
-      console.log('aa_getExternalOwnedAccount');
+
+    case 'crossFuel_getChainId': {
+      console.log('crossFuel_getChainId');
+      return await getConnectedChainId();
+    }
+
+    case 'crossFuel_getExternalOwnedAccount': {
+      console.log('crossFuel_getExternalOwnedAccount');
       const signer = await getSignerFromDerivedPrivateKey();
       return await signer.getAddress();
     }
 
-    case 'aa_getAbstractAccount': {
-      console.log('aa_getAbstractAccount');
+    case 'crossFuel_getAbstractAccount': {
+      console.log('crossFuel_getAbstractAccount');
       const chainId = await getConnectedChainId();
       const connectedAbstractAccount = await getAbstractAccount(chainId);
       return await connectedAbstractAccount.getAccountAddress();
     }
 
-    case 'send_aa_sendTransactionWithCrossFuel': {
+    case 'crossFuel_sendTransactionWithCrossFuel': {
       try {
-        console.log('send_aa_sendTransactionWithCrossFuel');
+        console.log('crossFuel_sendTransactionWithCrossFuel');
 
         const {
           target,
@@ -522,7 +528,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         await snap.request({
           method: 'snap_dialog',
           params: {
-            type: 'Confirmation',
+            type: 'Alert',
             content: panel([
               heading('User Op Sent to Bundler!'),
               text('Gas payment request ID:'),

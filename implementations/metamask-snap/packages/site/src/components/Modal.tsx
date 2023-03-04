@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import styled from 'styled-components';
 
 const ModalOverlay = styled.div`
@@ -26,11 +26,12 @@ const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 `;
 
 const ModalTitle = styled.p`
-  font-size: ${({ theme }) => theme.fontSizes.large};
+  font-size: ${({ theme }) => theme.fontSizes.medium};
+  font-weight: bold;
   margin: 0;
 `;
 
@@ -69,24 +70,29 @@ const ModalFooter = styled.div`
 
 type ModalProps = {
   children: ReactNode;
-  onClose: () => void;
-  title?: string;
+  title: string;
+  onClose?: () => void;
   footer?: ReactNode;
 };
 
-export const Modal = ({ children, onClose, title, footer }: ModalProps) => {
-  const handleClose = () => {
-    onClose();
-  };
+export const Modal = ({ children, title, onClose, footer }: ModalProps) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'visible';
+    };
+  }, []);
 
   return (
     <ModalOverlay>
       <ModalContent>
         <ModalHeader>
-          {title && <ModalTitle>{title}</ModalTitle>}
-          <ModalCloseButton onClick={handleClose}>
-            <CloseIcon />
-          </ModalCloseButton>
+          <ModalTitle>{title}</ModalTitle>
+          {onClose && (
+            <ModalCloseButton onClick={onClose}>
+              <CloseIcon />
+            </ModalCloseButton>
+          )}
         </ModalHeader>
         {children}
         {footer && <ModalFooter>{footer}</ModalFooter>}

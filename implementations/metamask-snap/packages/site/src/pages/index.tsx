@@ -8,6 +8,7 @@ import {
   getSnap,
   sendAccountAbstraction,
   shouldDisplayReconnectButton,
+  getChainId,
   getAbstractAccount,
   // getExternalOwnedAccount,
 } from '../utils';
@@ -23,6 +24,8 @@ import {
   Modal,
 } from '../components';
 import deployments from '../../../truffle/deployments.json';
+import networks from '../../../truffle/networks.json';
+import { isChainId } from '../../../../../common/types/ChainId';
 
 const Container = styled.div`
   display: flex;
@@ -108,12 +111,24 @@ const ErrorMessage = styled.div`
   }
 `;
 
-const CurrentBalance = styled.div`
+const LabelText = styled.div`
   font-size: ${({ theme }) => theme.fontSizes.small};
 `;
 
 const WalletAddress = styled.div`
   font-size: 0.6em;
+`;
+
+const ModalSubTitle = styled.div`
+  font-weight: bold;
+  padding: 10px 0;
+  margin-top: 20px;
+`;
+
+const NetworkNames = styled.div`
+  white-space: pre-wrap;
+  padding: 0;
+  line-height: 1.5;
 `;
 
 const isAxelarNativeToken = (address: string) => {
@@ -143,6 +158,7 @@ const Index = () => {
   const [gasPaymentChainId, setGasPaymentChainId] = useState('5');
   const [gasPaymentTokenList, setGasPaymentTokenList] = useState([]);
   // const [eoaWallet, setEOAWallet] = useState('');
+  const [connectedNetwork, setConnectedNetwork] = useState('');
   const [aaWallet, setAAWallet] = useState('');
 
   // TODO: update using squid api
@@ -150,19 +166,21 @@ const Index = () => {
     deployments.mockERC20Address,
   );
 
-  const [currentBalance, setCurrentBalance] = useState('');
+  const [currentBalance, setLabelText] = useState('');
   const [isPossibleToProcessPayment, setIsPossibleToProcessPayment] =
     useState(false);
 
   const [isTenderlySimulationEnabled, setIsTenderlySimulationEnabled] =
     useState(false);
 
+  const [isModalDisplayed, setIsModalDisplayed] = useState(false);
+
   useEffect(() => {
     if (!aaWallet || !gasPaymentChainId || !gasPaymentToken) {
       return;
     }
 
-    setCurrentBalance('load balance from Covalent API...');
+    setLabelText('load balance from Covalent API...');
     // TODO: put in a secure place.
     const apiKey = 'ckey_9035cd75d41a4c24bde1cedfecc';
     const chainName = chainIdToCovalentChainName(gasPaymentChainId);
@@ -188,7 +206,7 @@ const Index = () => {
           (item: any) => item.contract_address === adjustedGasPaymentToken,
         );
         if (target === undefined) {
-          setCurrentBalance('You do not own this token.');
+          setLabelText('You do not own this token.');
           if (isMockGasPaymentToken(gasPaymentToken)) {
             setIsPossibleToProcessPayment(true);
           } else {
@@ -196,7 +214,7 @@ const Index = () => {
           }
         } else {
           console.log(target);
-          setCurrentBalance(
+          setLabelText(
             `${ethers.utils.formatUnits(
               target.balance,
               target.contract_decimals,
@@ -209,12 +227,30 @@ const Index = () => {
   }, [aaWallet, gasPaymentChainId, gasPaymentToken]);
 
   useEffect(() => {
-    // const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
-    // if (!isFlaskConnected) {
-    //   return;
-    // }
-    // // getExternalOwnedAccount().then((address) => setEOAWallet(address));
-    // getAbstractAccount().then((address) => setAAWallet(address));
+    const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
+    if (!isFlaskConnected) {
+      return;
+    }
+
+    const relead = (chainId: string) => {
+      if (isChainId(chainId)) {
+        setIsModalDisplayed(false);
+        setConnectedNetwork(networks[chainId].name);
+        // getExternalOwnedAccount().then((address) => setEOAWallet(address));
+        getAbstractAccount().then((address) => setAAWallet(address));
+      } else {
+        setIsModalDisplayed(true);
+        setConnectedNetwork('');
+      }
+    };
+
+    getChainId().then((chainId) => {
+      relead(chainId);
+    });
+
+    window.ethereum.on('networkChanged', (chainId) => {
+      relead(chainId as string);
+    });
   }, [state.installedSnap]);
 
   useEffect(() => {
@@ -330,6 +366,10 @@ const Index = () => {
                 {aaWallet && (
                   <>
                     <Form
+                      label="Connected Network"
+                      input={<>{connectedNetwork}</>}
+                    />
+                    <Form
                       label="Address"
                       input={<WalletAddress>{aaWallet}</WalletAddress>}
                     />
@@ -387,10 +427,7 @@ const Index = () => {
                     />
                   }
                 />
-                <Form
-                  label="Balance"
-                  input={<CurrentBalance>{currentBalance}</CurrentBalance>}
-                />
+                <Form label="Balance" input={<>{currentBalance}</>} />
                 <Checkbox
                   label="Enable Tenderly simulation"
                   checked={isTenderlySimulationEnabled}
@@ -419,6 +456,18 @@ const Index = () => {
           </p>
         </Notice>
       </CardContainer>
+      {isModalDisplayed && (
+        <Modal title="Network Error">
+          The current network is not supported.
+          <ModalSubTitle>Supported Network</ModalSubTitle>
+          <NetworkNames>
+            {Object.values(networks)
+              .filter(({ enabled }) => enabled)
+              .map((d) => d.name)
+              .join('\n')}
+          </NetworkNames>
+        </Modal>
+      )}
     </Container>
   );
 };
