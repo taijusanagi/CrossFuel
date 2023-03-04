@@ -7,9 +7,10 @@ import { DefenderRelaySigner, DefenderRelayProvider } from "defender-relay-clien
 
 import deployments from "../../metamask-snap/packages/truffle/deployments.json";
 import PaymasterJson from "../../metamask-snap/packages/truffle/build/VerifyingPaymaster.json";
-import { verifyingPaymasterSigner } from "../../metamask-snap/packages/truffle/config.json";
+import { verifyingPaymasterSigner, covalentApiKey } from "../../metamask-snap/packages/truffle/config.json";
 
 import MockERC20Json from "../../metamask-snap/packages/truffle/build/MockERC20.json";
+import networksJson from "../../metamask-snap/packages/truffle/networks.json";
 
 import { Squid } from "@0xsquid/sdk";
 
@@ -181,6 +182,143 @@ app.post("/sign", async (req: Request, res: Response) => {
       });
     res.send({ paymasterAndData });
   }
+});
+
+// If the priority is for bridging, use Axelar to bridge the asset.
+// If the priority is for swapping, use 1Inch to swap the asset.
+// In the production environment, the priority could be mixed, so it is necessary to optimize the approach for efficiency.
+const syncMode = "Bridge Prioritized"; // "Swap Prioritized"
+
+app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
+  console.log("syncFuelBySwapAndBridge");
+
+  //TODO: check if the request is from auto task
+  console.log("called from Defender auto task");
+  const hashes: string[] = [];
+  await squid.init();
+
+  let bridgingTokens: {
+    chainId: string;
+    symbol: string;
+    contractAddress: string;
+    balance: string;
+  }[] = [];
+
+  console.log("check Defender Relayer balance by Covalent API");
+  for (const chainId of Object.keys(networksJson)) {
+    const supportedTokens = squid.tokens.filter((t) => t.chainId === parseInt(chainId));
+    // const chainData = networksJson[chainId];
+    // const { key: chainName } = chainData;
+    const { covalentKey } = networksJson[chainId as ChainId];
+    // console.log(`=== ${covalentKey} ===`);
+    if (covalentKey) {
+      // Call the Covalent API with the chain name and API key
+
+      const covalentResponse = await fetch(
+        `https://api.covalenthq.com/v1/${covalentKey}/address/${verifyingPaymasterSigner}/balances_v2/`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${covalentApiKey}`,
+          },
+        }
+      )
+        .then((response) => response.json())
+        .then(({ data }) => {
+          console.log(`Chain ${chainId} data:`);
+          const { items } = data;
+
+          // The Covalent API response may include "dust" balances, which are very small amounts of tokens
+          // that are not worth tracking. We can remove these balances to improve efficiency.
+          // However, it's currently not possible to remove dust balances for ETH on the Goerli network, so we will temporarily keep them in the response.
+          const tokenBalances = items.map((item: any) => {
+            const { contract_ticker_symbol, balance, contract_address } = item;
+            console.log(`- ${contract_address} - ${balance} ${contract_ticker_symbol}`);
+            return { chainId, symbol: contract_ticker_symbol, contractAddress: contract_address, balance };
+          });
+          return tokenBalances;
+        })
+        .catch((error) => {
+          console.error(`Failed to fetch data for chain ${chainId}:`, error);
+        });
+
+      const matchingTokens = covalentResponse.filter((response: any) => {
+        let address = response.contractAddress;
+        // If the chainId is 5 and the contractAddress is "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", use the default address
+        if (response.chainId === "5" && address === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
+          address = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        }
+        // If the chainId is 80001 and the contractAddress is "0x0000000000000000000000000000000000001010", use the default address
+        if (response.chainId === "80001" && address === "0x0000000000000000000000000000000000001010") {
+          address = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        }
+        return supportedTokens.some((token) => token.address.toLowerCase() === address.toLowerCase());
+      });
+
+      /*
+        This algorithm aims to optimize transaction efficiency.
+        For the purposes of this demo, if a payment token is available,
+        it will be bridged to the opposite network.
+      */
+      bridgingTokens = bridgingTokens.concat(matchingTokens);
+    }
+  }
+
+  console.log("=== execute path finder ===");
+  console.log("syncMode", syncMode);
+  if (syncMode === "Bridge Prioritized") {
+    console.log("only bridge aUSDC for testnet demo");
+    let flag = false;
+    for (const matchingToken of bridgingTokens) {
+      if (matchingToken.symbol === "aUSDC") {
+        const destinationChain = matchingToken.chainId === "5" ? 80001 : 5;
+
+        console.log("from chain id:", matchingToken.chainId);
+        console.log("from token address:", matchingToken.contractAddress);
+        console.log("from token balance:", matchingToken.balance);
+
+        if (ethers.BigNumber.from(matchingToken.balance).lt(10000000)) {
+          console.log("bridge threshold is 10 USD");
+        } else {
+          flag = true;
+          console.log("to chain id:", destinationChain);
+          console.log("to token address:", "native");
+        }
+      }
+    }
+
+    if (flag) {
+      console.log("=== execute bridge with Axelar ===");
+      for (const matchingToken of bridgingTokens) {
+        if (matchingToken.symbol === "aUSDC" && ethers.BigNumber.from(matchingToken.balance).gte(10000000)) {
+          const destinationChain = matchingToken.chainId === "5" ? 80001 : 5;
+          const { signer } = getDefenderSignerByChainId(matchingToken.chainId.toString() as ChainId);
+          const { route } = await squid.getRoute({
+            fromChain: matchingToken.chainId,
+            fromToken: matchingToken.contractAddress,
+            fromAmount: matchingToken.balance,
+            toChain: destinationChain,
+            toToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+            toAddress: verifyingPaymasterSigner,
+            slippage: 1.0, // 1.00 = 1% max slippage across the entire route
+            enableForecall: true, // instant execution service, defaults to true
+            quoteOnly: false, // optional, defaults to false
+          });
+          const tx = await signer.sendTransaction({
+            to: route.transactionRequest.targetAddress,
+            data: route.transactionRequest.data,
+            value: `0x${route.transactionRequest.value}`,
+            gasLimit: `0x${route.transactionRequest.gasLimit}`,
+          });
+          hashes.push(tx.hash);
+        }
+      }
+    } else {
+      console.log("=== no token for bridge ===");
+    }
+  }
+  res.send(hashes);
 });
 
 app.listen(port, () => {
