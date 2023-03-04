@@ -128,6 +128,12 @@ export const sendAccountAbstraction = async (
     console.log(message);
   }
 
+  console.log('to', to);
+  console.log('data', data);
+  console.log('gasPaymentChainId', gasPaymentChainId);
+  console.log('gasPaymentToken', gasPaymentToken);
+  console.log('isTenderlySimulationEnabled', isTenderlySimulationEnabled);
+
   return await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
