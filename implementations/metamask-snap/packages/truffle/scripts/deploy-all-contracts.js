@@ -9,6 +9,12 @@ const CrossFuelPaymasterJson = require('../build/CrossFuelPaymaster.json');
 const MockERC20Json = require('../build/MockERC20.json');
 const MockSBTClaimJson = require('../build/MockSBTClaim.json');
 
+const GnosisSafeProxyFactory = require('@gnosis.pm/safe-contracts/build/artifacts/contracts/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json');
+const GnosisSafeL2Json = require('@gnosis.pm/safe-contracts/build/artifacts/contracts/GnosisSafeL2.sol/GnosisSafeL2.json');
+
+const EIP4337ManagerJson = require('../build/EIP4337Manager.json');
+const GnosisSafeAccountFactoryJson = require('../build/GnosisSafeAccountFactory.json');
+
 const fs = require('fs');
 const path = require('path');
 
@@ -80,17 +86,31 @@ const main = async () => {
       entryPointAddress = await deployIfNeeded(entryPointDeploymentCode);
 
       console.log('====== Factory ======');
+
+      // Obtain a contract that is both relevant and safe.
+      const safeProxyFactory = await deployIfNeeded(
+        GnosisSafeProxyFactory.bytecode,
+      );
+      const safeSingleTon = await deployIfNeeded(GnosisSafeL2Json.bytecode);
+      const eip4337ManagerDeploymentArgument =
+        ethers.utils.defaultAbiCoder.encode(['address'], [entryPointAddress]);
+      const eip4337ManagerDeploymentCode = ethers.utils.solidityPack(
+        ['bytes', 'bytes'],
+        [EIP4337ManagerJson.bytecode, eip4337ManagerDeploymentArgument],
+      );
+      const eip4337ManagerAddress = await deployIfNeeded(
+        eip4337ManagerDeploymentCode,
+      );
       const factoryDeploymentArgument = ethers.utils.defaultAbiCoder.encode(
-        ['address'],
-        [entryPointAddress],
+        ['address', 'address', 'address'],
+        [safeProxyFactory, safeSingleTon, eip4337ManagerAddress],
       );
       console.log('factoryDeploymentArgument', factoryDeploymentArgument);
       const factoryDeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
-        [SimpleAccountFactory__factory.bytecode, factoryDeploymentArgument],
+        [GnosisSafeAccountFactoryJson.bytecode, factoryDeploymentArgument],
       );
       factoryAddress = await deployIfNeeded(factoryDeploymentCode);
-
       console.log('====== Paymaster ======');
       const paymasterDeploymentArgument = ethers.utils.defaultAbiCoder.encode(
         ['address', 'address', 'address'],

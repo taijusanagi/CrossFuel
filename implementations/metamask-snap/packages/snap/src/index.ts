@@ -137,6 +137,8 @@ export const getAbstractAccount = async (
   const provider = getJsonPRCProviderByChainId(chainId);
   const owner = await getSignerFromDerivedPrivateKey();
 
+  console.log(factoryAddress);
+
   const aa = new SimpleAccountAPI({
     provider,
     entryPointAddress,

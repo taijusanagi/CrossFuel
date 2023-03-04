@@ -3508,6 +3508,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@gnosis.pm/safe-contracts@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "@gnosis.pm/safe-contracts@npm:1.3.0"
+  peerDependencies:
+    ethers: ^5.1.4
+  checksum: fea331745e3af0ed7322115e5bd4cc37de914253d9f6e1d85a4713e7e1fdc758bdba95cd2c38c6ba2cfd1bb289378d983d40723c3c525331dce0ed30418ab990
+  languageName: node
+  linkType: hard
+
 "@graphql-codegen/add@npm:^3.1.1":
   version: 3.2.1
   resolution: "@graphql-codegen/add@npm:3.2.1"
@@ -21632,6 +21641,7 @@ __metadata:
   dependencies:
     "@account-abstraction/contracts": 0.5.0
     "@axelar-network/axelar-gmp-sdk-solidity": ^3.2.1
+    "@gnosis.pm/safe-contracts": ^1.3.0
     "@openzeppelin/contracts": ^4.8.1
     "@truffle/hdwallet-provider": ^2.1.1
     chai: ^4.3.7
