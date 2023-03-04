@@ -2,6 +2,9 @@ import { useContext, useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
+import { Core } from '@walletconnect/core';
+import { Web3Wallet } from '@walletconnect/web3wallet';
+import MockSBTClaimJson from '../../../truffle/build/MockSBTClaim.json';
 import { MetamaskActions, MetaMaskContext } from '../hooks';
 import {
   connectSnap,
@@ -14,6 +17,7 @@ import {
 } from '../utils';
 import {
   // ConnectButton,
+  WalletConnectButton,
   InstallFlaskButton,
   ReconnectButton,
   SendAccountAbstractionButton,
@@ -22,10 +26,15 @@ import {
   Form,
   Checkbox,
   Modal,
+  TextInput,
 } from '../components';
 import deployments from '../../../truffle/deployments.json';
 import networks from '../../../truffle/networks.json';
 import { isChainId } from '../../../../../common/types/ChainId';
+
+const core = new Core({
+  projectId: 'e45e61249f768100f05bf973e956a3e6',
+});
 
 const Container = styled.div`
   display: flex;
@@ -111,10 +120,6 @@ const ErrorMessage = styled.div`
   }
 `;
 
-const LabelText = styled.div`
-  font-size: ${({ theme }) => theme.fontSizes.small};
-`;
-
 const WalletAddress = styled.div`
   font-size: 0.6em;
 `;
@@ -175,6 +180,10 @@ const Index = () => {
 
   const [isModalDisplayed, setIsModalDisplayed] = useState(false);
 
+  const [walletConnect, setWalletConnect] = useState<any>();
+  const [walletConnectUrl, setWalletConnectUrl] = useState('');
+  // const [walletConnectTopic, setWalletConnectTopic] = useState('');
+
   useEffect(() => {
     if (!aaWallet || !gasPaymentChainId || !gasPaymentToken) {
       return;
@@ -201,7 +210,6 @@ const Index = () => {
     )
       .then((response) => response.json())
       .then(({ data }) => {
-        console.log(data);
         const target = data.items.find(
           (item: any) => item.contract_address === adjustedGasPaymentToken,
         );
@@ -213,7 +221,6 @@ const Index = () => {
             setIsPossibleToProcessPayment(false);
           }
         } else {
-          console.log(target);
           setLabelText(
             `${ethers.utils.formatUnits(
               target.balance,
@@ -226,6 +233,27 @@ const Index = () => {
       .catch((error) => console.error(error));
   }, [aaWallet, gasPaymentChainId, gasPaymentToken]);
 
+  const mockSBTClaim = new ethers.Contract(
+    deployments.mockSBTClaim,
+    MockSBTClaimJson.abi,
+  );
+  const claimSBTData = mockSBTClaim.interface.encodeFunctionData('claim', []);
+
+  const handleAccountAbstractionClick = async (to?: string, data?: string) => {
+    try {
+      return await sendAccountAbstraction(
+        to || deployments.mockSBTClaim,
+        data || claimSBTData,
+        gasPaymentChainId,
+        gasPaymentToken,
+        isTenderlySimulationEnabled,
+      );
+    } catch (e) {
+      console.error(e);
+      dispatch({ type: MetamaskActions.SetError, payload: e });
+    }
+  };
+
   useEffect(() => {
     const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
     if (!isFlaskConnected) {
@@ -237,7 +265,62 @@ const Index = () => {
         setIsModalDisplayed(false);
         setConnectedNetwork(networks[chainId].name);
         // getExternalOwnedAccount().then((address) => setEOAWallet(address));
-        getAbstractAccount().then((address) => setAAWallet(address));
+        getAbstractAccount().then((address) => {
+          setAAWallet(address);
+          Web3Wallet.init({
+            core, // <- pass the shared `core` instance
+            metadata: {
+              name: 'CrossFuel',
+              description: 'Cross-chain gas payment with AA',
+              url: '',
+              icons: [],
+            },
+          }).then((web3Wallet) => {
+            setWalletConnect(web3Wallet);
+            web3Wallet.on('session_proposal', async (proposal) => {
+              await web3Wallet.approveSession({
+                id: proposal.id,
+                namespaces: {
+                  eip155: {
+                    chains: ['eip155:80001'],
+                    events: ['chainChanged', 'accountsChanged'],
+                    // in this demo, we only implemented eth_sendTransaction
+                    methods: [
+                      'eth_sendTransaction',
+                      'eth_signTransaction',
+                      'eth_sign',
+                      'personal_sign',
+                      'eth_signTypedData',
+                    ],
+                    accounts: [`eip155:80001:${address}`],
+                  },
+                },
+              });
+            });
+
+            web3Wallet.on('session_request', async (event) => {
+              const { topic, params, id } = event;
+              const { request } = params;
+              if (request.method === 'eth_sendTransaction') {
+                const { executeHash } = (await handleAccountAbstractionClick(
+                  request.params[0].to,
+                  request.params[0].data || '0x',
+                )) as any;
+
+                console.log('executeHash', executeHash);
+
+                await web3Wallet.respondSessionRequest({
+                  topic,
+                  response: {
+                    id,
+                    result: executeHash,
+                    jsonrpc: '2.0',
+                  },
+                });
+              }
+            });
+          });
+        });
       } else {
         setIsModalDisplayed(true);
         setConnectedNetwork('');
@@ -289,17 +372,11 @@ const Index = () => {
     }
   };
 
-  const handleAccountAbstractionClick = async () => {
-    try {
-      await sendAccountAbstraction(
-        gasPaymentChainId,
-        gasPaymentToken,
-        isTenderlySimulationEnabled,
-      );
-    } catch (e) {
-      console.error(e);
-      dispatch({ type: MetamaskActions.SetError, payload: e });
+  const handleWalletConnectClick = () => {
+    if (!walletConnect) {
+      return;
     }
+    walletConnect.core.pairing.pair({ uri: walletConnectUrl });
   };
 
   return (
@@ -444,6 +521,37 @@ const Index = () => {
               />
             ),
           }}
+          disabled={!state.installedSnap}
+        />
+        <Card
+          content={{
+            title: 'Connect by Web3Wallet',
+            others: (
+              <>
+                {' '}
+                <Form
+                  label="Input WalletConnect URL"
+                  input={
+                    <>
+                      <TextInput
+                        value={walletConnectUrl}
+                        onChange={(e) => setWalletConnectUrl(e.target.value)}
+                      />
+                    </>
+                  }
+                />
+              </>
+            ),
+            button: (
+              <WalletConnectButton
+                onClick={handleWalletConnectClick}
+                disabled={
+                  !state.installedSnap || !walletConnect || !walletConnectUrl
+                }
+              />
+            ),
+          }}
+          fullWidth
           disabled={!state.installedSnap}
         />
         <Notice>

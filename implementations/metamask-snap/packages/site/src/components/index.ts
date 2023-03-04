@@ -10,3 +10,4 @@ export * from './Select';
 export * from './Form';
 export * from './CheckBox';
 export * from './Modal';
+export * from './TextInput';

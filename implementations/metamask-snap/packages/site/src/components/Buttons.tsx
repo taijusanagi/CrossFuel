@@ -39,6 +39,7 @@ const Button = styled.button`
   align-items: center;
   justify-content: center;
   margin-top: auto;
+  width: 100%;
   ${({ theme }) => theme.mediaQueries.small} {
     width: 100%;
   }
@@ -91,6 +92,15 @@ export const ReconnectButton = (props: ComponentProps<typeof Button>) => {
     <Button {...props}>
       <FlaskFox />
       <ButtonText>Reconnect</ButtonText>
+    </Button>
+  );
+};
+
+export const WalletConnectButton = (props: ComponentProps<typeof Button>) => {
+  return (
+    <Button {...props}>
+      {/* <FlaskFox /> */}
+      <ButtonText>Connect</ButtonText>
     </Button>
   );
 };
