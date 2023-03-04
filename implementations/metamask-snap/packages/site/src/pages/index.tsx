@@ -20,6 +20,7 @@ import {
   Select,
   Form,
   Checkbox,
+  Modal,
 } from '../components';
 import deployments from '../../../truffle/deployments.json';
 
@@ -208,12 +209,12 @@ const Index = () => {
   }, [aaWallet, gasPaymentChainId, gasPaymentToken]);
 
   useEffect(() => {
-    const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
-    if (!isFlaskConnected) {
-      return;
-    }
-    // getExternalOwnedAccount().then((address) => setEOAWallet(address));
-    getAbstractAccount().then((address) => setAAWallet(address));
+    // const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
+    // if (!isFlaskConnected) {
+    //   return;
+    // }
+    // // getExternalOwnedAccount().then((address) => setEOAWallet(address));
+    // getAbstractAccount().then((address) => setAAWallet(address));
   }, [state.installedSnap]);
 
   useEffect(() => {

@@ -1,12 +1,10 @@
 const {
   EntryPoint__factory,
   SimpleAccountFactory__factory,
-  // VerifyingPaymaster__factory,
 } = require('@account-abstraction/contracts');
 const { DeterministicDeployer } = require('@account-abstraction/sdk');
 const { ethers } = require('ethers');
 const networksJson = require('../networks.json');
-// const FactoryJson = require('../build/SimpleAccountFactory.json');
 const CrossFuelPaymasterJson = require('../build/CrossFuelPaymaster.json');
 const MockERC20Json = require('../build/MockERC20.json');
 const MockSBTClaimJson = require('../build/MockSBTClaim.json');
@@ -25,8 +23,7 @@ const mnemonicPhrase = process.env.MNEMONIC_PHRASE;
 
 const truffle = require('../truffle-config');
 
-// TODO: replace with defender address
-const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
+const { verifyingPaymasterSigner } = require('../config.json');
 const intervalTime = 1000;
 
 const main = async () => {
