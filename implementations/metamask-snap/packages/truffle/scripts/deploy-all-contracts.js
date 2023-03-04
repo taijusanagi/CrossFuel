@@ -1,13 +1,13 @@
 const {
   EntryPoint__factory,
   SimpleAccountFactory__factory,
-  VerifyingPaymaster__factory,
+  // VerifyingPaymaster__factory,
 } = require('@account-abstraction/contracts');
 const { DeterministicDeployer } = require('@account-abstraction/sdk');
 const { ethers } = require('ethers');
-const networks = require('../networks');
+const networksJson = require('../networks.json');
 // const FactoryJson = require('../build/SimpleAccountFactory.json');
-// const PaymasterJson = require('../build/VerifyingPaymaster.json');
+const CrossFuelPaymasterJson = require('../build/CrossFuelPaymaster.json');
 const MockERC20Json = require('../build/MockERC20.json');
 const MockSBTClaimJson = require('../build/MockSBTClaim.json');
 
@@ -37,8 +37,8 @@ const main = async () => {
   let mockSBTClaim;
 
   try {
-    for (const network of networks) {
-      console.log(`Processing on ${network}`);
+    for (const { key: network } of Object.values(networksJson)) {
+      console.log(`====== ${network} ======`);
 
       // @dev
       // This requires deploying with creat2 to Multichain, so Truffle migrate cannot be used directly.
@@ -96,27 +96,27 @@ const main = async () => {
 
       console.log('====== Paymaster ======');
       const paymasterDeploymentArgument = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'address'],
-        [entryPointAddress, verifyingPaymasterSigner],
+        ['address', 'address', 'address'],
+        [entryPointAddress, verifyingPaymasterSigner, verifyingPaymasterSigner],
       );
       console.log('paymasterDeploymentArgument', paymasterDeploymentArgument);
       const paymasterDeploymentCode = ethers.utils.solidityPack(
         ['bytes', 'bytes'],
-        [VerifyingPaymaster__factory.bytecode, paymasterDeploymentArgument],
+        [CrossFuelPaymasterJson.bytecode, paymasterDeploymentArgument],
       );
       paymasterAddress = await deployIfNeeded(paymasterDeploymentCode);
 
       const paymasterContract = new ethers.Contract(
         paymasterAddress,
-        VerifyingPaymaster__factory.abi,
+        CrossFuelPaymasterJson.abi,
         signer,
       );
 
       const deposit = await paymasterContract.getDeposit();
-      if (deposit.lt(ethers.utils.parseEther('1'))) {
+      if (deposit.lt(ethers.utils.parseEther('0.2'))) {
         console.log('paymaster deposit is too low');
         const tx = await paymasterContract.deposit({
-          value: ethers.utils.parseEther('1'),
+          value: ethers.utils.parseEther('0.3'),
         });
         await tx.wait();
         console.log('depositted');
@@ -134,12 +134,6 @@ const main = async () => {
         [MockERC20Json.bytecode, mockERC20DeploymentArgument],
       );
       mockERC20Address = await deployIfNeeded(mockERC20DeploymentCode);
-
-      const mockERC20Contract = new ethers.Contract(
-        mockERC20Address,
-        MockERC20Json.abi,
-        signer,
-      );
 
       console.log('====== Mock SBT Claim ======');
       const mockSBTClaimDeploymentCode = MockSBTClaimJson.bytecode;

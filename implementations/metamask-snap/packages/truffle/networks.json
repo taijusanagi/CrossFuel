@@ -1,0 +1,26 @@
+{
+  "5": {
+    "key": "goerli",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar"
+  },
+  "80001": {
+    "key": "polygon-mumbai",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar"
+  },
+  "420": {
+    "key": "optimism-goerli",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar"
+  },
+  "421613": {
+    "key": "arbitrum-goerli",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar"
+  }
+}
