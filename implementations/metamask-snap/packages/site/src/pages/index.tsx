@@ -30,7 +30,8 @@ import {
 } from '../components';
 import deployments from '../../../truffle/deployments.json';
 import networks from '../../../truffle/networks.json';
-import { isChainId } from '../../../../../common/types/ChainId';
+import { covalentApiKey } from '../../../truffle/config.json';
+import { isChainId, ChainId } from '../../../../../common/types/ChainId';
 
 const core = new Core({
   projectId: 'e45e61249f768100f05bf973e956a3e6',
@@ -144,13 +145,6 @@ const isMockGasPaymentToken = (address: string) => {
   return address === deployments.mockERC20Address;
 };
 
-const chainIdToCovalentChainName = (chainId: string) => {
-  if (chainId === '5') {
-    return 'eth-goerli';
-  }
-  return 'matic-mumbai';
-};
-
 const chainIdToCovalentNativeToken = (chainId: string) => {
   if (chainId === '5') {
     return '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
@@ -191,20 +185,20 @@ const Index = () => {
 
     setLabelText('load balance from Covalent API...');
     // TODO: put in a secure place.
-    const apiKey = 'ckey_9035cd75d41a4c24bde1cedfecc';
-    const chainName = chainIdToCovalentChainName(gasPaymentChainId);
+
+    const { covalentKey } = networks[gasPaymentChainId as ChainId];
 
     const adjustedGasPaymentToken = isAxelarNativeToken(gasPaymentToken)
       ? chainIdToCovalentNativeToken(gasPaymentChainId)
       : gasPaymentToken;
 
     fetch(
-      `https://api.covalenthq.com/v1/${chainName}/address/${aaWallet}/balances_v2/`,
+      `https://api.covalenthq.com/v1/${covalentKey}/address/${aaWallet}/balances_v2/`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${covalentApiKey}`,
         },
       },
     )
