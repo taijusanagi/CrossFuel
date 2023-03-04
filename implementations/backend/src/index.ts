@@ -192,8 +192,6 @@ const syncMode = "Bridge Prioritized"; // "Swap Prioritized"
 app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
   console.log("syncFuelBySwapAndBridge");
 
-  //TODO: check if the request is from auto task
-  console.log("called from Defender auto task");
   const hashes: string[] = [];
   await squid.init();
 
