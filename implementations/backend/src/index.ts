@@ -194,11 +194,11 @@ app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
 
   //TODO: check if the request is from auto task
   console.log("called from Defender auto task");
-
+  const hashes: string[] = [];
   await squid.init();
 
   let bridgingTokens: {
-    chainId: number;
+    chainId: string;
     symbol: string;
     contractAddress: string;
     balance: string;
@@ -272,31 +272,53 @@ app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
     let flag = false;
     for (const matchingToken of bridgingTokens) {
       if (matchingToken.symbol === "aUSDC") {
-        flag = true;
-        const destinationChain = matchingToken.chainId === 5 ? 80001 : 5;
+        const destinationChain = matchingToken.chainId === "5" ? 80001 : 5;
 
         console.log("from chain id:", matchingToken.chainId);
         console.log("from token address:", matchingToken.contractAddress);
-        console.log("to chain id:", destinationChain);
-        console.log("to token address:", "native");
+        console.log("from token balance:", matchingToken.balance);
 
-        // console.log("token address:", matchingToken);
+        if (ethers.BigNumber.from(matchingToken.balance).lt(10000000)) {
+          console.log("bridge threshold is 10 USD");
+        } else {
+          flag = true;
+          console.log("to chain id:", destinationChain);
+          console.log("to token address:", "native");
+        }
       }
     }
 
     if (flag) {
       console.log("=== execute bridge with Axelar ===");
-
       for (const matchingToken of bridgingTokens) {
-        if (matchingToken.symbol === "aUSDC") {
-          const destinationChain = matchingToken.chainId === 5 ? 80001 : 5;
+        if (matchingToken.symbol === "aUSDC" && ethers.BigNumber.from(matchingToken.balance).gte(10000000)) {
+          const destinationChain = matchingToken.chainId === "5" ? 80001 : 5;
+          const { signer } = getDefenderSignerByChainId(matchingToken.chainId.toString() as ChainId);
+          const { route } = await squid.getRoute({
+            fromChain: matchingToken.chainId,
+            fromToken: matchingToken.contractAddress,
+            fromAmount: matchingToken.balance,
+            toChain: destinationChain,
+            toToken: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+            toAddress: verifyingPaymasterSigner,
+            slippage: 1.0, // 1.00 = 1% max slippage across the entire route
+            enableForecall: true, // instant execution service, defaults to true
+            quoteOnly: false, // optional, defaults to false
+          });
+          const tx = await signer.sendTransaction({
+            to: route.transactionRequest.targetAddress,
+            data: route.transactionRequest.data,
+            value: `0x${route.transactionRequest.value}`,
+            gasLimit: `0x${route.transactionRequest.gasLimit}`,
+          });
+          hashes.push(tx.hash);
         }
       }
     } else {
       console.log("=== no token for bridge ===");
     }
   }
-  res.send("ok");
+  res.send(hashes);
 });
 
 app.listen(port, () => {
