@@ -48,7 +48,6 @@ const Description = styled.div`
 
 const Others = styled.div`
   margin-top: 2.4rem;
-  margin-bottom: 2.4rem;
 `;
 
 export const Card = ({ content, disabled = false, fullWidth }: CardProps) => {

@@ -1,10 +1,7 @@
-import { ethers } from 'ethers';
-
 import { defaultSnapOrigin } from '../config';
 import { GetSnapsResponse, Snap } from '../types';
 
 import deployments from '../../../truffle/deployments.json';
-import MockSBTClaimJson from '../../../truffle/build/MockSBTClaim.json';
 
 /**
  * Get the installed snaps in MetaMask.
@@ -97,6 +94,8 @@ export const getAbstractAccount = async () => {
 };
 
 export const sendAccountAbstraction = async (
+  to: string,
+  data: string,
   gasPaymentChainId: string,
   gasPaymentToken: string,
   isTenderlySimulationEnabled: boolean,
@@ -129,22 +128,15 @@ export const sendAccountAbstraction = async (
     console.log(message);
   }
 
-  const mockSBTClaim = new ethers.Contract(
-    deployments.mockSBTClaim,
-    MockSBTClaimJson.abi,
-  );
-
-  const claimSBTData = mockSBTClaim.interface.encodeFunctionData('claim', []);
-
-  await window.ethereum.request({
+  return await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
       request: {
         method: 'crossFuel_sendTransactionWithCrossFuel',
         params: {
-          target: deployments.mockSBTClaim,
-          data: claimSBTData,
+          target: to,
+          data,
           gasPaymentChainId,
           gasPaymentToken,
           isTenderlySimulationEnabled,

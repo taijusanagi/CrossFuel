@@ -531,6 +531,10 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
             type: 'Alert',
             content: panel([
               heading('User Op Sent to Bundler!'),
+              text(
+                'Please wait for some time to receive confirmation that the user operation has been included in the blockchain.',
+              ),
+              divider(),
               text('Gas payment request ID:'),
               copyable(sendGasPaymentUserOpToBundlerResult),
               text('Execute request ID:'),
@@ -539,9 +543,75 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           },
         });
 
-        return {
+        const waitForResult = async (
+          opHash: string,
+          url: string,
+          timeout: number,
+        ): Promise<{ transactionHash: string }> => {
+          return new Promise((resolve, reject) => {
+            const intervalId = setInterval(async () => {
+              // Check for a condition to be true
+
+              const gasPaymentUserOperationReceipt = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'eth_getUserOperationReceipt',
+                params: [opHash],
+              };
+
+              const result = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify(gasPaymentUserOperationReceipt),
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }).then((response) => response.json());
+
+              console.log('waiting for the confirmation...');
+
+              if (!result.error) {
+                clearInterval(intervalId);
+                resolve(result.result.receipt);
+              }
+            }, 5000);
+
+            // If the timeout is reached, reject the promise
+            setTimeout(() => {
+              clearInterval(intervalId);
+              reject(new Error('Timed out while waiting for result.'));
+            }, timeout);
+          });
+        };
+
+        const { transactionHash: gasPaymentHash } = await waitForResult(
           sendGasPaymentUserOpToBundlerResult,
+          bundlerUrls[gasPaymentChainId],
+          1000000,
+        );
+
+        const { transactionHash: executeHash } = await waitForResult(
           sendExecuteUserOpToBundlerResult,
+          bundlerUrls[executeChainId],
+          1000000,
+        );
+
+        await snap.request({
+          method: 'snap_dialog',
+          params: {
+            type: 'Alert',
+            content: panel([
+              heading('Transaction Confirmed!'),
+              divider(),
+              text('Gas payment tx:'),
+              copyable(gasPaymentHash),
+              text('Execute payment tx:'),
+              copyable(executeHash),
+            ]),
+          },
+        });
+        return {
+          gasPaymentHash,
+          executeHash,
         };
       } catch (e) {
         await snap.request({
