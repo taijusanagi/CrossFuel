@@ -66,12 +66,22 @@ export const sendHello = async () => {
   });
 };
 
+export const getChainId = async () => {
+  return (await window.ethereum.request({
+    method: 'wallet_invokeSnap',
+    params: {
+      snapId: defaultSnapOrigin,
+      request: { method: 'crossFuel_getChainId' },
+    },
+  })) as string;
+};
+
 export const getExternalOwnedAccount = async () => {
   return (await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'aa_getExternalOwnedAccount' },
+      request: { method: 'crossFuel_getExternalOwnedAccount' },
     },
   })) as string;
 };
@@ -81,7 +91,7 @@ export const getAbstractAccount = async () => {
     method: 'wallet_invokeSnap',
     params: {
       snapId: defaultSnapOrigin,
-      request: { method: 'aa_getAbstractAccount' },
+      request: { method: 'crossFuel_getAbstractAccount' },
     },
   })) as string;
 };
@@ -131,7 +141,7 @@ export const sendAccountAbstraction = async (
     params: {
       snapId: defaultSnapOrigin,
       request: {
-        method: 'send_aa_sendTransactionWithCrossFuel',
+        method: 'crossFuel_sendTransactionWithCrossFuel',
         params: {
           target: deployments.mockSBTClaim,
           data: claimSBTData,

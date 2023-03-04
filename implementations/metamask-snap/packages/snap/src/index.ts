@@ -18,8 +18,13 @@ import {
 import { getBIP44AddressKeyDeriver } from '@metamask/key-tree';
 import deployments from '../../truffle/deployments.json';
 import MockERC20Json from '../../truffle/build/MockERC20.json';
+import {
+  verifyingPaymasterSigner,
+  bundlerSigner,
+} from '../../truffle/config.json';
+import { ChainId } from '../../../../common/types/ChainId';
+import configJson from '../../truffle/networks.json';
 import { getGasFee } from './utils/getGasFee';
-
 /**
  * Handle incoming JSON-RPC requests, sent through `wallet_invokeSnap`.
  *
@@ -31,34 +36,23 @@ import { getGasFee } from './utils/getGasFee';
  * @throws If the request method is not valid for this snap.
  */
 
-const entryPoint = '0x0576a174D229E3cFA37253523E645A78A0C91B57';
 const bundlerUrls = {
   '5': 'https://node.stackup.sh/v1/rpc/d7567b6a3d8c1d90df52de74c0b310e08dcb0a538f264ac162090c046613931c',
+  '420': '',
   '80001':
     'https://node.stackup.sh/v1/rpc/bdaf63d7cd0180897fc9ec780edd1d408e4c406aaab1763a73b21b0b35ae4af9',
+  '421613': '',
 };
-const chainName = {
-  '5': 'goerli',
-  '80001': 'polygon-mumbai',
-};
-type ChainId = keyof typeof bundlerUrls;
+
 let currentChainId: ChainId | null;
 
-// TODO: replace with defender address
-const bundlerSigner = '0xa8dBa26608565e1F69d81Efae4cbB5cB8e87013d';
-const verifyingPaymasterSigner = '0x7f5aa4c071671ad22edc02bb8a081418bb6c484f';
 const fundManager = verifyingPaymasterSigner;
 
-// TODO: move to safe place
+// Although it should be stored in a secure location, for the time being, it will be hardcoded
 const infuraProjectId = 'eedaad734dce46a4b08816a7f6df0b9b';
-
 const tenderlyApiKey = 'LQCz-SOOynktbBecKFBpduGtnkCVFNiR';
 const tenderlyUser = 'taijusanagi';
 const tenderlyProject = 'hackathon';
-
-const isChainId = (value: string): value is ChainId => {
-  return Object.keys(bundlerUrls).includes(value);
-};
 
 const getConnectedProvider = () => {
   return new ethers.providers.Web3Provider(ethereum as any);
@@ -68,15 +62,12 @@ const getConnectedChainId = async (): Promise<ChainId> => {
   const provider = getConnectedProvider();
   const { chainId } = await provider.getNetwork();
   const chainIdString = chainId.toString();
-  if (!isChainId(chainIdString)) {
-    throw new Error(`Invalid chain ID: ${chainId}`);
-  }
-  return chainIdString;
+  return chainIdString as ChainId;
 };
 
 const getJsonPRCProviderByChainId = (chainId: ChainId) => {
   return new ethers.providers.JsonRpcProvider(
-    `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`,
+    `https://${configJson[chainId].key}.infura.io/v3/${infuraProjectId}`,
   );
 };
 
@@ -178,22 +169,28 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           ]),
         },
       });
-    case 'aa_getExternalOwnedAccount': {
-      console.log('aa_getExternalOwnedAccount');
+
+    case 'crossFuel_getChainId': {
+      console.log('crossFuel_getChainId');
+      return await getConnectedChainId();
+    }
+
+    case 'crossFuel_getExternalOwnedAccount': {
+      console.log('crossFuel_getExternalOwnedAccount');
       const signer = await getSignerFromDerivedPrivateKey();
       return await signer.getAddress();
     }
 
-    case 'aa_getAbstractAccount': {
-      console.log('aa_getAbstractAccount');
+    case 'crossFuel_getAbstractAccount': {
+      console.log('crossFuel_getAbstractAccount');
       const chainId = await getConnectedChainId();
       const connectedAbstractAccount = await getAbstractAccount(chainId);
       return await connectedAbstractAccount.getAccountAddress();
     }
 
-    case 'send_aa_sendTransactionWithCrossFuel': {
+    case 'crossFuel_sendTransactionWithCrossFuel': {
       try {
-        console.log('send_aa_sendTransactionWithCrossFuel');
+        console.log('crossFuel_sendTransactionWithCrossFuel');
 
         const {
           target,
@@ -494,13 +491,13 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         console.log('init aa bundlers');
         const gasPaymentChainBundler = new HttpRpcClient(
           bundlerUrls[gasPaymentChainId],
-          entryPoint,
+          deployments.entryPointAddress,
           parseInt(gasPaymentChainId, 10),
         );
 
         const executeChainBundler = new HttpRpcClient(
           bundlerUrls[executeChainId],
-          entryPoint,
+          deployments.entryPointAddress,
           parseInt(executeChainId, 10),
         );
 
@@ -531,7 +528,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
         await snap.request({
           method: 'snap_dialog',
           params: {
-            type: 'Confirmation',
+            type: 'Alert',
             content: panel([
               heading('User Op Sent to Bundler!'),
               text('Gas payment request ID:'),

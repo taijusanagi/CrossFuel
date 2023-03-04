@@ -1,0 +1,35 @@
+{
+  "5": {
+    "key": "goerli",
+    "name": "Ethereum Goerli",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar",
+    "enabled": true
+  },
+  "80001": {
+    "key": "polygon-mumbai",
+    "name": "Polygon Mumbai",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar",
+    "enabled": true
+  },
+  "420": {
+    "key": "optimism-goerli",
+    "name": "Optimism Goerli",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar",
+    "enabled": false
+  },
+
+  "421613": {
+    "key": "arbitrum-goerli",
+    "name": "Arbitrum Goerli",
+    "env": "testnet",
+    "rpc": "infura",
+    "bridge": "axelar",
+    "enabled": false
+  }
+}

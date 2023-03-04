@@ -18,6 +18,8 @@
  *
  */
 
+const networksJson = require('./networks.json');
+
 require('dotenv').config();
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const mnemonic = process.env.MNEMONIC_PHRASE;
@@ -37,6 +39,12 @@ function getNetwork(url) {
 function getInfuraNetwork(name) {
   return getNetwork(infuraUrl(name));
 }
+
+const networks = {};
+
+Object.values(networksJson).forEach(({ key, rpc }) => {
+  networks[key] = rpc === 'infura' ? getInfuraNetwork(key) : getNetwork(rpc);
+});
 
 module.exports = {
   /**
@@ -62,10 +70,12 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: '*', // Any network (default: none)
     },
-
-    // @dev: to avoid duplicate
-    goerli: getInfuraNetwork('goerli'),
-    'polygon-mumbai': getInfuraNetwork('polygon-mumbai'),
+    // goerli: getInfuraNetwork('goerli'),
+    ...networks,
+    // ...Object.values(networkJson)
+    //   .filter(({ rpc }) => rpc === 'infura')
+    //   .map(({ key }) => getInfuraNetwork(key)),
+    // 'polygon-mumbai': getInfuraNetwork('polygon-mumbai'),
     //
     // An additional network, but with some advanced options…
     // advanced: {

@@ -9,3 +9,4 @@ export * from './Toggle';
 export * from './Select';
 export * from './Form';
 export * from './CheckBox';
+export * from './Modal';

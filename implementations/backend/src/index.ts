@@ -7,6 +7,7 @@ import { DefenderRelaySigner, DefenderRelayProvider } from "defender-relay-clien
 
 import deployments from "../../metamask-snap/packages/truffle/deployments.json";
 import PaymasterJson from "../../metamask-snap/packages/truffle/build/VerifyingPaymaster.json";
+import { verifyingPaymasterSigner } from "../../metamask-snap/packages/truffle/config.json";
 
 import MockERC20Json from "../../metamask-snap/packages/truffle/build/MockERC20.json";
 
@@ -24,7 +25,6 @@ const port = process.env.PORT || "8001";
 // @dev: keep local signer implementation for zkSync integration
 // const mnemonicPhrase = process.env.MNEMONIC_PHRASE || "";
 // const infuraProjectId = process.env.INFURA_PROJECT_ID;
-const verifyingPaymasterSigner = "0x7f5aa4c071671ad22edc02bb8a081418bb6c484f";
 const fundManager = verifyingPaymasterSigner;
 
 const app: Express = express();
@@ -35,15 +35,7 @@ app.use((err: any, req: any, res: any, next: any) => {
   res.status(500).send("Something broke!");
 });
 
-const chainName = {
-  "5": "goerli",
-  "80001": "polygon-mumbai",
-};
-type ChainId = keyof typeof chainName;
-
-const isChainId = (value: string): value is ChainId => {
-  return Object.keys(chainName).includes(value);
-};
+import { ChainId, isChainId } from "../../common/types/ChainId";
 
 const getDefenderSignerByChainId = (chainId: ChainId) => {
   const credentials =
@@ -54,14 +46,6 @@ const getDefenderSignerByChainId = (chainId: ChainId) => {
   const signer = new DefenderRelaySigner(credentials, provider, { speed: "fast" });
   return { provider, signer };
 };
-
-// const getSignerAndProviderForTargetChain = (chainId: ChainId) => {
-//   const provider = new ethers.providers.JsonRpcProvider(
-//     `https://${chainName[chainId]}.infura.io/v3/${infuraProjectId}`
-//   );
-//   const signer = ethers.Wallet.fromMnemonic(mnemonicPhrase).connect(provider);
-//   return { provider, signer };
-// };
 
 app.get("/", async (req: Request, res: Response) => {
   console.log("hello");
