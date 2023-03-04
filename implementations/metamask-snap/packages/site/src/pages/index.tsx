@@ -205,7 +205,9 @@ const Index = () => {
       .then((response) => response.json())
       .then(({ data }) => {
         const target = data.items.find(
-          (item: any) => item.contract_address === adjustedGasPaymentToken,
+          (item: any) =>
+            item.contract_address.toLowerCase() ===
+            adjustedGasPaymentToken.toLowerCase(),
         );
         if (target === undefined) {
           setLabelText('You do not own this token.');
