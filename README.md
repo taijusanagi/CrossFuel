@@ -39,10 +39,6 @@ Metamask Snap is an extension feature of Metamask that adds the Account Abstract
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/metamask-snap.md
 
-#### Technical Detail
-
-https://github.com/taijusanagi/CrossFuel/blob/main/docs/metamask-snap.md
-
 ### Infura
 
 Our team utilizes Infura, a multichain node service, for deploying multichain contracts, including the Account Abstraction infrastructure contract, which we are deploying to each chain. Meanwhile, Truffle, a core development tool, provides a starter kit for Metamask Snap and smart contract.
@@ -85,13 +81,13 @@ Including Polygon in our platform is crucial as it has one of the largest user b
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/polygon.md
 
-### Expand to L2
+### Expand to L2 with Scroll
 
 We are planning to incorporate our Account Abstraction infrastructure onto Scroll. This is because Scroll is transitioning to zk EVM, which lacks native support for Account Abstraction. By deploying our infrastructure on Scroll, we can bridge this gap.
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
 
-### 1inchi
+### 1inchi for the Swap Integration
 
 We are utilizing 1inch for the swap and attempting to incorporate 1inch swap into our platform. However, since 1inch does not support testnet, we are testing its functionality in a separate file and designing its architecture on testnet.
 
