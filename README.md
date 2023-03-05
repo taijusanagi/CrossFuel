@@ -71,6 +71,16 @@ By working together, these services provide a seamless and secure user experienc
 
 ### Truffle Snaps Box
 
+We utilized Truffle Snaps Box to create a Metamask boilerplate
+
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/truffle-snaps-box.md
+
+### Others
+
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/polygon.md
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/one-inch.md
+
 ## Development
 
 ### Backend
