@@ -23,3 +23,8 @@ We use the Defender auto task to monitor paymaster deposits in the Account Abstr
 ![defender-keep-the-same-address](./defender-keep-the-same-address.png)
 
 2. The admin can run a sync function to fund the account.
+
+SampleCode:
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/sample-defender-task-to-check-paymaster-balance.js
+
+- tested sending email and balance is logged in console
