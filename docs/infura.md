@@ -2,6 +2,12 @@
 
 Our team utilizes Infura, a multichain node service, for deploying multichain contracts, including the Account Abstraction infrastructure contract, which we are deploying to each chain. Meanwhile, Truffle, a core development tool, provides a starter kit for Metamask Snap and smart contract.
 
+## Required Video Demo
+
+In this video demonstration, we will elucidate our approach to contract deployments using Infura.
+
+https://youtu.be/tn9IiMZHTJ4
+
 ## Defining Target Chains - Thought Process
 
 https://github.com/taijusanagi/CrossFuel/issues/1

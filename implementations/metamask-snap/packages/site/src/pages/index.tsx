@@ -274,6 +274,7 @@ const Index = () => {
     const relead = (chainId: string) => {
       console.log('relead');
       if (chainId === '80001') {
+        console.log('chain id if fine');
         setIsModalDisplayed(false);
         setConnectedNetwork(networks[chainId].name);
         // getExternalOwnedAccount().then((address) => setEOAWallet(address));

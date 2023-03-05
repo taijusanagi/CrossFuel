@@ -87,6 +87,8 @@ export const getExternalOwnedAccount = async () => {
 };
 
 export const getAbstractAccount = async () => {
+  console.log('getAbstractAccount');
+
   return (await window.ethereum.request({
     method: 'wallet_invokeSnap',
     params: {
