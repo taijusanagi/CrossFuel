@@ -21,6 +21,10 @@ const squid = new Squid({
 
 dotenv.config();
 
+// 1000000 = 1 usd
+
+const minimumUSDC = 1000000;
+
 const port = process.env.PORT || "8001";
 
 // @dev: keep local signer implementation for zkSync integration
@@ -189,7 +193,7 @@ app.post("/sign", async (req: Request, res: Response) => {
 // In the production environment, the priority could be mixed, so it is necessary to optimize the approach for efficiency.
 const syncMode = "Bridge Prioritized"; // "Swap Prioritized"
 
-app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
+app.post("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
   console.log("syncFuelBySwapAndBridge");
 
   const hashes: string[] = [];
@@ -276,7 +280,7 @@ app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
         console.log("from token address:", matchingToken.contractAddress);
         console.log("from token balance:", matchingToken.balance);
 
-        if (ethers.BigNumber.from(matchingToken.balance).lt(10000000)) {
+        if (ethers.BigNumber.from(matchingToken.balance).lt(minimumUSDC)) {
           console.log("bridge threshold is 10 USD");
         } else {
           flag = true;
@@ -289,7 +293,7 @@ app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
     if (flag) {
       console.log("=== execute bridge with Axelar ===");
       for (const matchingToken of bridgingTokens) {
-        if (matchingToken.symbol === "aUSDC" && ethers.BigNumber.from(matchingToken.balance).gte(10000000)) {
+        if (matchingToken.symbol === "aUSDC" && ethers.BigNumber.from(matchingToken.balance).gte(minimumUSDC)) {
           const destinationChain = matchingToken.chainId === "5" ? 80001 : 5;
           const { signer } = getDefenderSignerByChainId(matchingToken.chainId.toString() as ChainId);
           const { route } = await squid.getRoute({
@@ -303,11 +307,15 @@ app.get("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
             enableForecall: true, // instant execution service, defaults to true
             quoteOnly: false, // optional, defaults to false
           });
-          const tx = await signer.sendTransaction({
-            to: route.transactionRequest.targetAddress,
-            data: route.transactionRequest.data,
-            value: `0x${route.transactionRequest.value}`,
-            gasLimit: `0x${route.transactionRequest.gasLimit}`,
+          const tx = await squid.executeRoute({
+            signer,
+            route: {
+              ...route,
+              transactionRequest: {
+                ...route.transactionRequest,
+                gasLimit: parseInt(route.transactionRequest.gasLimit) as any,
+              },
+            },
           });
           hashes.push(tx.hash);
         }

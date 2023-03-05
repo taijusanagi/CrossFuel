@@ -14,7 +14,7 @@ const CheckboxContainer = styled.label`
 `;
 
 const Label = styled.span`
-  font-weight: bold;
+  font-size: ${({ theme }) => theme.fontSizes.small};
   margin-right: 0.75rem;
 `;
 

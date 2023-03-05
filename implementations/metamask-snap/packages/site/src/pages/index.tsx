@@ -81,7 +81,7 @@ const CardContainer = styled.div`
   max-width: 64.8rem;
   width: 100%;
   height: 100%;
-  margin-top: 1.5rem;
+  margin-top: 3rem;
 `;
 
 const Notice = styled.div`
@@ -129,6 +129,10 @@ const ModalSubTitle = styled.div`
   font-weight: bold;
   padding: 10px 0;
   margin-top: 20px;
+`;
+
+const NetworkText = styled.div`
+  font-size: ${({ theme }) => theme.fontSizes.small};
 `;
 
 const NetworkNames = styled.div`
@@ -205,7 +209,9 @@ const Index = () => {
       .then((response) => response.json())
       .then(({ data }) => {
         const target = data.items.find(
-          (item: any) => item.contract_address === adjustedGasPaymentToken,
+          (item: any) =>
+            item.contract_address.toLowerCase() ===
+            adjustedGasPaymentToken.toLowerCase(),
         );
         if (target === undefined) {
           setLabelText('You do not own this token.');
@@ -233,11 +239,11 @@ const Index = () => {
   );
   const claimSBTData = mockSBTClaim.interface.encodeFunctionData('claim', []);
 
-  const handleAccountAbstractionClick = async (to?: string, data?: string) => {
+  const handleAccountAbstractionClick = async (to: string, data: string) => {
     try {
       return await sendAccountAbstraction(
-        to || deployments.mockSBTClaim,
-        data || claimSBTData,
+        to,
+        data,
         gasPaymentChainId,
         gasPaymentToken,
         isTenderlySimulationEnabled,
@@ -276,7 +282,7 @@ const Index = () => {
                 id: proposal.id,
                 namespaces: {
                   eip155: {
-                    chains: ['eip155:80001'],
+                    chains: [`eip155:${chainId}`],
                     events: ['chainChanged', 'accountsChanged'],
                     // in this demo, we only implemented eth_sendTransaction
                     methods: [
@@ -286,7 +292,7 @@ const Index = () => {
                       'personal_sign',
                       'eth_signTypedData',
                     ],
-                    accounts: [`eip155:80001:${address}`],
+                    accounts: [`eip155:${chainId}:${address}`],
                   },
                 },
               });
@@ -438,7 +444,7 @@ const Index = () => {
                   <>
                     <Form
                       label="Connected Network"
-                      input={<>{connectedNetwork}</>}
+                      input={<NetworkText>{connectedNetwork}</NetworkText>}
                     />
                     <Form
                       label="Address"
@@ -452,12 +458,12 @@ const Index = () => {
                 )}
               </>
             ),
-            button: (
-              <ReconnectButton
-                onClick={handleConnectClick}
-                disabled={!state.installedSnap}
-              />
-            ),
+            // button: (
+            //   <ReconnectButton
+            //     onClick={handleConnectClick}
+            //     disabled={!state.installedSnap}
+            //   />
+            // ),
           }}
           disabled={!state.installedSnap}
         />
@@ -499,18 +505,28 @@ const Index = () => {
                   }
                 />
                 <Form label="Balance" input={<>{currentBalance}</>} />
-                <Checkbox
-                  label="Enable Tenderly simulation"
-                  checked={isTenderlySimulationEnabled}
-                  onChange={(e) => {
-                    setIsTenderlySimulationEnabled(e.target.checked);
-                  }}
+                <Form
+                  label="Advanced"
+                  input={
+                    <Checkbox
+                      label="Enable Tenderly simulation"
+                      checked={isTenderlySimulationEnabled}
+                      onChange={(e) => {
+                        setIsTenderlySimulationEnabled(e.target.checked);
+                      }}
+                    />
+                  }
                 />
               </>
             ),
             button: (
               <SendAccountAbstractionButton
-                onClick={handleAccountAbstractionClick}
+                onClick={() =>
+                  handleAccountAbstractionClick(
+                    deployments.mockSBTClaim,
+                    claimSBTData,
+                  )
+                }
                 disabled={!state.installedSnap || !isPossibleToProcessPayment}
               />
             ),
