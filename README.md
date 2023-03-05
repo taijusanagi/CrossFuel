@@ -15,6 +15,12 @@ TBD
 
 TBD
 
+## How It Works
+
+![how-it-works](./docs/how-it-works.jpg)
+
+Our system involves two user operations: one for paying the gas fee, and the other for executing the actual transaction. The backend automatically verifies the deposit amount of the paymaster and adjusts the balance using a cross-chain bridge and swap mechanism. By batching transactions, we achieve cost efficiency and can benefit from the resulting savings.
+
 ## Account Abstraction
 
 Our smart contract and bundler are fully compatible with the newly released version of the Account Abstraction contract from Ethereum Foundation, which was activated during ETHDenver 2023.
@@ -23,9 +29,9 @@ Our smart contract and bundler are fully compatible with the newly released vers
 
 With its compatibility with the latest version of Account Abstraction, CrossFuel provides a secure and easy-to-use platform for cross-chain gas payments. It is an ideal solution for anyone looking to make cross-chain transactions with ease.
 
-## How It Works
+By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without worrying about managing tokens across different chains.
 
-![how-it-works](./docs/how-it-works.jpg)
+## Bounties
 
 ### Metamask Snap
 
@@ -67,18 +73,22 @@ In our data retrieval process across multiple chains, Covalent plays a pivotal r
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/covalent.md
 
-By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without worrying about managing tokens across different chains.
-
 ### Truffle Snaps Box
 
 We utilized Truffle Snaps Box to create a Metamask boilerplate
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/truffle-snaps-box.md
 
+### Polygon
+
+Including Polygon in our platform is crucial as it has one of the largest user bases among blockchain networks. With Polygon integrated, users can pay gas fees in Polygon for other chains such as zkEVM, making it a convenient payment layer for many users.
+
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/polygon.md
+
 ### Others
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/one-inch.md
-https://github.com/taijusanagi/CrossFuel/blob/main/docs/polygon.md
+
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
 
 ## Development
