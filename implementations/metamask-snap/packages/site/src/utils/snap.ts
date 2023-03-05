@@ -3,6 +3,8 @@ import { GetSnapsResponse, Snap } from '../types';
 
 import deployments from '../../../truffle/deployments.json';
 
+const backendURLBase = process.env.BACKEND_URL || 'http://localhost:8001';
+
 /**
  * Get the installed snaps in MetaMask.
  *
@@ -117,7 +119,7 @@ export const sendAccountAbstraction = async (
     const headers = {
       'Content-Type': 'application/json',
     };
-    const { message } = await fetch('http://localhost:8001/faucet', {
+    const { message } = await fetch(`${backendURLBase}/faucet`, {
       method,
       headers,
       body: JSON.stringify({

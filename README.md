@@ -9,11 +9,11 @@ It eliminates the need to swap or bridge tokens, making transactions across mult
 
 ### Live Demo
 
-TBD
+https://cross-fuel.vercel.app/
 
-### Video
+### Demo Video
 
-TBD
+https://studio.youtube.com/video/pMYqMyQt7qQ/edit
 
 ## How It Works
 
@@ -114,3 +114,7 @@ yarn start
 ### Backend
 
 https://cross-fuel-backend.onrender.com/
+
+### Fronten
+
+https://cross-fuel.vercel.app/
