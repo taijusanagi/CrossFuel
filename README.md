@@ -43,6 +43,8 @@ Our team utilizes Infura, a multichain node service, for deploying multichain co
 
 Defender automates the verification of the signature within the paymaster contract, as well as the paymaster deposit balance check and any required fund transfers, making it an excellent choice for CrossFuel, which requires a stable infrastructure for signing and health check.
 
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/defender.md
+
 ### Axelar
 
 Axelar Network is a crucial component of our cross-chain gas payment service. In the event of insufficient funds, we leverage the cross-chain bridge to transfer funds from a chain with a surplus. Additionally, we utilize Squid, the cross-chain swap and liquidity routing protocol, on the Axelar Network to facilitate our operations.
