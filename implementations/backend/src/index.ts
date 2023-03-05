@@ -307,13 +307,17 @@ app.post("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
             enableForecall: true, // instant execution service, defaults to true
             quoteOnly: false, // optional, defaults to false
           });
-          // const tx = await signer.sendTransaction({
-          //   to: route.transactionRequest.targetAddress,
-          //   data: route.transactionRequest.data,
-          //   value: `0x${route.transactionRequest.value}`,
-          //   gasLimit: `0x${route.transactionRequest.gasLimit}`,
-          // });
-          // hashes.push(tx.hash);
+          const tx = await squid.executeRoute({
+            signer,
+            route: {
+              ...route,
+              transactionRequest: {
+                ...route.transactionRequest,
+                gasLimit: parseInt(route.transactionRequest.gasLimit) as any,
+              },
+            },
+          });
+          hashes.push(tx.hash);
         }
       }
     } else {
