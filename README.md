@@ -93,6 +93,8 @@ https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
 
 ## Development
 
+To proceed with testing, it is necessary to obtain the Defender API key for both Goerli and Mumbai networks. Additionally, it is important to ensure that the contract is strongly connected to our Defender verifier address. To ensure a smooth testing process, I recommend testing in a deployed environment.
+
 ### Backend
 
 ```
