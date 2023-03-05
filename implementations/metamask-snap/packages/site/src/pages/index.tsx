@@ -265,12 +265,14 @@ const Index = () => {
   };
 
   useEffect(() => {
+    console.log('load aa wallet test');
     const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
     if (!isFlaskConnected) {
       return;
     }
-
+    console.log('pass flask test');
     const relead = (chainId: string) => {
+      console.log('relead');
       if (chainId === '80001') {
         setIsModalDisplayed(false);
         setConnectedNetwork(networks[chainId].name);
@@ -337,7 +339,9 @@ const Index = () => {
       }
     };
 
+    console.log('start get chain id');
     getChainId().then((chainId) => {
+      console.log(chainId);
       relead(chainId);
     });
 
