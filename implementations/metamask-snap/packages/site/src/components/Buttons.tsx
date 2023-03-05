@@ -136,14 +136,14 @@ export const HeaderButtons = ({
     return <ConnectButton onClick={onConnectClick} />;
   }
 
-  if (shouldDisplayReconnectButton(state.installedSnap)) {
-    return <ReconnectButton onClick={onConnectClick} />;
-  }
+  // if (shouldDisplayReconnectButton(state.installedSnap)) {
+  return <ReconnectButton onClick={onConnectClick} />;
+  // }
 
-  return (
-    <ConnectedContainer>
-      <ConnectedIndicator />
-      <ButtonText>Connected</ButtonText>
-    </ConnectedContainer>
-  );
+  // return (
+  //   <ConnectedContainer>
+  //     <ConnectedIndicator />
+  //     <ButtonText>Connected</ButtonText>
+  //   </ConnectedContainer>
+  // );
 };

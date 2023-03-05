@@ -42,10 +42,8 @@ const backendUrl = 'https://cross-fuel-backend.onrender.com';
 
 const bundlerUrls = {
   '5': 'https://node.stackup.sh/v1/rpc/d7567b6a3d8c1d90df52de74c0b310e08dcb0a538f264ac162090c046613931c',
-  '420': '',
   '80001':
     'https://node.stackup.sh/v1/rpc/bdaf63d7cd0180897fc9ec780edd1d408e4c406aaab1763a73b21b0b35ae4af9',
-  '421613': '',
 };
 
 let currentChainId: ChainId | null;
@@ -70,12 +68,15 @@ const getConnectedChainId = async (): Promise<ChainId> => {
 };
 
 const getJsonPRCProviderByChainId = (chainId: ChainId) => {
+  console.log(configJson[chainId]);
+  console.log(infuraProjectId);
   return new ethers.providers.JsonRpcProvider(
     `https://${configJson[chainId].key}.infura.io/v3/${infuraProjectId}`,
   );
 };
 
 const getSignerFromDerivedPrivateKey = async (chainId?: ChainId) => {
+  console.log('getSignerFromDerivedPrivateKey');
   // TODO: currently, only supports accounts[0] in metamask default account
   //       let's think about better private key creation way later
   const ethereumNode = await snap.request({
@@ -137,8 +138,9 @@ export const getAbstractAccount = async (
 ): Promise<SimpleAccountAPI> => {
   console.log('getAbstractAccount');
   const { entryPointAddress, factoryAddress } = deployments;
-
+  console.log('chainId', chainId);
   const provider = getJsonPRCProviderByChainId(chainId);
+  console.log('provider', provider);
   const owner = await getSignerFromDerivedPrivateKey();
 
   const aa = new SimpleAccountAPI({
@@ -188,7 +190,9 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
     case 'crossFuel_getAbstractAccount': {
       console.log('crossFuel_getAbstractAccount');
       const chainId = await getConnectedChainId();
+      console.log('chainId', chainId);
       const connectedAbstractAccount = await getAbstractAccount(chainId);
+      console.log('connectedAbstractAccount', connectedAbstractAccount);
       return await connectedAbstractAccount.getAccountAddress();
     }
 
