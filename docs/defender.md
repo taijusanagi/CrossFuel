@@ -14,9 +14,13 @@ We are utilizing the Defender relayer key as the signer in the Verifying Paymast
 
 Defender only signs when the user creates enough gas payment, and the Verifying Paymaster checks the off-chain signature created by Defender. This is the core function of cross-chain gas payment.
 
-For contract details, please see [here](https://goerli.etherscan.io/address/0xab49271f86d99aa6efa4a96a00efc5ac864b051a#code).
+For contract details, please see [here](https://goerli.etherscan.io/address/0x78a5baab4684c0ffa719d07a0d3e036897f9b5ad#code).
 
 ## Fund Manager
+
+### Paymaster Balance Tracking
+
+We utilize the Defender auto task to monitor paymaster deposits in the Account Abstraction entrypoint. This is essential as it ensures that there is always sufficient deposit available.
 
 ### Faucet
 
