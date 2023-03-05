@@ -31,6 +31,10 @@ With its compatibility with the latest version of Account Abstraction, CrossFuel
 
 Metamask Snap is an extension feature of Metamask that adds the Account Abstraction function, which was previously cumbersome to use and required multiple signatures, making it difficult to comprehend the transaction process. By automating the Account Abstraction signature and providing a transaction simulator for improved security, Metamask Snap simplifies and enhances the user experience.
 
+#### Technical Detail
+
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/metamask-snap.md
+
 ### Infura & Truffle
 
 Our team utilizes Infura, a multichain node service, for deploying multichain contracts, including the Account Abstraction infrastructure contract, which we are deploying to each chain. Meanwhile, Truffle, a core development tool, provides a starter kit for Metamask Snap and smart contract.

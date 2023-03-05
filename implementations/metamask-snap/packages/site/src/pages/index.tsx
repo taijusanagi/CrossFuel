@@ -244,9 +244,9 @@ const Index = () => {
       return await sendAccountAbstraction(
         to,
         data,
-        gasPaymentChainId,
-        gasPaymentToken,
-        isTenderlySimulationEnabled,
+        '5', // for demo
+        '0x254d06f33bdc5b8ee05b2ea472107e300226659a', // for demo
+        true, // for demo
       );
     } catch (e) {
       console.error(e);
