@@ -87,14 +87,14 @@ contract GasPaymentGateway is AxelarExecutable {
         // Send the native token to the destination chain using the Axelar gateway
         IERC20(destinationNativeTokenAddress).approve(address(gateway), destinationChainNativeTokenAmount);
 
-        // if (msg.value > 0) {
-        //     IAxelarGasService(axelarGasServiceAddress)
-        //         .payNativeGasForContractCallWithToken{ value: msg.value }(
-        //         address(gateway),
-        //         paymentTokenAddress,
-        //         paymentTokenAmount
-        //     );
-        // }
+        if (msg.value > 0) {
+            IAxelarGasService(axelarGasServiceAddress)
+                .payNativeGasForContractCallWithToken{ value: msg.value }(
+                address(gateway),
+                paymentTokenAddress,
+                paymentTokenAmount
+            );
+        }
 
         bytes memory payload = abi.encode(requestId);
         gateway.callContractWithToken(
