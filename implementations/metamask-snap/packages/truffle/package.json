@@ -12,6 +12,7 @@
     "test-with-ganache-forked-chain": "WITH_FORKED_GANACHE_FORKED_CHAIN=true truffle test"
   },
   "dependencies": {
+    "@1inch/fusion-sdk": "^0.0.11",
     "@account-abstraction/contracts": "0.5.0",
     "@axelar-network/axelar-gmp-sdk-solidity": "^3.2.1",
     "@openzeppelin/contracts": "^4.8.1",
@@ -22,6 +23,8 @@
     "dotenv": "^16.0.3",
     "ganache": "^7.5.0",
     "truffle": "^5.7.8",
-    "truffle-plugin-verify": "^0.6.1"
+    "truffle-plugin-verify": "^0.6.1",
+    "ts-node": "^10.9.1",
+    "typescipt": "^1.0.0"
   }
 }
