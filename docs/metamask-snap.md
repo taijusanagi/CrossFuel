@@ -1,5 +1,7 @@
 ## Metamask Snap
 
+This is deployed at: https://www.npmjs.com/package/crossfuel-snap
+
 Metamask Snap simplifies the Account Abstraction function by automating the signature process and providing a transaction simulator for improved security. This extension feature of Metamask enhances the user experience by eliminating the need for multiple signatures, which was previously cumbersome and difficult to comprehend.
 
 To create a project template, we utilized the Metamask Snap Truffle Box, which can be found at https://github.com/taijusanagi/2023-eth-denver-submission/tree/main/implementations/metamask-snap.

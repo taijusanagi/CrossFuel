@@ -118,3 +118,7 @@ https://cross-fuel-backend.onrender.com/
 ### Fronten
 
 https://cross-fuel.vercel.app/
+
+### Metamask Snap
+
+https://www.npmjs.com/package/crossfuel-snap
