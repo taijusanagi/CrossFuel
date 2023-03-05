@@ -61,10 +61,6 @@ Communicating the inner workings of Account Abstraction to users is challenging.
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/tenderly.md
 
-### Web3Wallet
-
-By creatively integrating Web3Wallet with Metamask Snap, our app has gained increased composability and can now access any dApps that support WalletConnect. This integration enables cross-chain gas payment for any WalletConnect supported dApps, allowing for greater flexibility and accessibility.
-
 ### Covalent
 
 In our data retrieval process across multiple chains, Covalent plays a pivotal role. On the frontend, we gather supported tokens across various chains, while on the backend, we use Covalent to obtain balance data to ensure validation prior to conducting swaps and cross-chain bridge transfers.
