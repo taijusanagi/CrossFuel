@@ -59,4 +59,6 @@ By creatively integrating Web3Wallet with Metamask Snap, our app has gained incr
 
 In our data retrieval process across multiple chains, Covalent plays a pivotal role. On the frontend, we gather supported tokens across various chains, while on the backend, we use Covalent to obtain balance data to ensure validation prior to conducting swaps and cross-chain bridge transfers.
 
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/covalent.md
+
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without worrying about managing tokens across different chains.
