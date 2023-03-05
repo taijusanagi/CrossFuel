@@ -34,6 +34,8 @@ https://polygonscan.com/tx/0xc7065ea6808451eae9dcd327e14d317b3ce1be9e151500f3b9a
 
 ## How We Utilize the 1inch fusion
 
+https://github.com/taijusanagi/CrossFuel/blob/main/implementations/backend/src/index.ts#L335
+
 ![1inch-model](./1inch-model.png)
 
 Swapping and bridging tokens through platforms like 1inch and CrossFuel can offer numerous benefits for users in the decentralized finance (DeFi) ecosystem. Here are some additional benefits:

@@ -20,7 +20,7 @@ We use the Defender auto task to monitor paymaster deposits in the Account Abstr
 
 1. Check the paymaster deposit balance and send a notification to the admin if the balance is too low.
 
-![defender-keep-the-same-address](./defender-keep-the-same-address.png)
+![defender-notification](./defender-notification.png)
 
 2. The admin can run a sync function to fund the account.
 
