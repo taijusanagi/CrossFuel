@@ -6,7 +6,7 @@ To create a project template, we utilized the Metamask Snap Truffle Box, which c
 
 ## Scalability & Improved User Experience with Metamask Snap
 
-n this application, the user creates two transactions - one for cross-chain gas payment and one for the actual transaction. Both transactions utilize Account Abstraction verifying paymaster function, which previously required the user to sign four times.
+In this application, the user creates two transactions - one for cross-chain gas payment and one for the actual transaction. Both transactions utilize Account Abstraction verifying paymaster function, which previously required the user to sign four times.
 
 ![verifying-paymaster-logic-flow](./verifying-paymaster-logic-flow.jpg)
 

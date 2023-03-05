@@ -1,8 +1,9 @@
 ## Scroll
 
-We are planning to incorporate our Account Abstraction infrastructure onto Scroll. This is because Scroll is transitioning to zk EVM, which lacks native support for Account Abstraction. By deploying our infrastructure on Scroll, we can bridge this gap.
+For further details, please refer to the following information.
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
 
-However, the initial bridge management process for the zk chain can be challenging. To attract more users to Scroll, our service allows them to skip this process.
+We are planning to incorporate our Account Abstraction infrastructure onto Scroll. This is because Scroll is transitioning to zk EVM, which lacks native support for Account Abstraction. By deploying our infrastructure on Scroll, we can bridge this gap.
 
 You can find all the contract information here:
 https://github.com/taijusanagi/CrossFuel/tree/main/implementations/metamask-snap/packages/truffle/scroll.json
