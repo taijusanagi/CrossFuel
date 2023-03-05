@@ -91,7 +91,7 @@ We are planning to incorporate our Account Abstraction infrastructure onto Scrol
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
 
-### 1Inchi
+### 1inchi
 
 We are utilizing 1inch for the swap and attempting to incorporate 1inch swap into our platform. However, since 1inch does not support testnet, we are testing its functionality in a separate file and designing its architecture on testnet.
 
