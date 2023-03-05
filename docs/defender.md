@@ -17,3 +17,9 @@ By enabling the "Clone to another network" option, we can use the same signing k
 ## Paymaster Balance Tracking with Autotasks
 
 We use the Defender auto task to monitor paymaster deposits in the Account Abstraction entrypoint. This is essential to ensure that there is always sufficient deposit available.
+
+1. Check the paymaster deposit balance and send a notification to the admin if the balance is too low.
+
+![defender-keep-the-same-address](./defender-keep-the-same-address.png)
+
+2. The admin can run a sync function to fund the account.

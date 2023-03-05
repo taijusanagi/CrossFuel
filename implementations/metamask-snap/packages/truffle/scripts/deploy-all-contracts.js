@@ -109,6 +109,10 @@ const main = async () => {
         signer,
       );
 
+      const encoded =
+        paymasterContract.interface.encodeFunctionData('getDeposit');
+      console.log('encoded', encoded);
+
       const deposit = await paymasterContract.getDeposit();
       if (deposit.lt(ethers.utils.parseEther('0.2'))) {
         console.log('paymaster deposit is too low');
