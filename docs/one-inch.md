@@ -1,5 +1,7 @@
 ## Tested Code
 
+https://github.com/taijusanagi/CrossFuel/blob/main/implementations/metamask-snap/packages/truffle/scripts/fusion.ts
+
 ## Tested Order
 
 ```
@@ -21,3 +23,7 @@
   orderHash: '0xd7f92b9a147c473b38e57c530d0a5e746d7fec988425425331ef1d3102a24e55'
 }
 ```
+
+## Tested Transaction
+
+https://polygonscan.com/tx/0xc7065ea6808451eae9dcd327e14d317b3ce1be9e151500f3b9a4156e1165325f
