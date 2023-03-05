@@ -31,6 +31,8 @@ With its compatibility with the latest version of Account Abstraction, CrossFuel
 
 Metamask Snap is an extension feature of Metamask that adds the Account Abstraction function, which was previously cumbersome to use and required multiple signatures, making it difficult to comprehend the transaction process. By automating the Account Abstraction signature and providing a transaction simulator for improved security, Metamask Snap simplifies and enhances the user experience.
 
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/metamask-snap.md
+
 #### Technical Detail
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/metamask-snap.md
@@ -70,3 +72,21 @@ In our data retrieval process across multiple chains, Covalent plays a pivotal r
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/covalent.md
 
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without worrying about managing tokens across different chains.
+
+## Development
+
+### Backend
+
+```
+cd implementations/backend
+yarn
+yarn dev
+```
+
+### Frontend
+
+```
+cd implementations/metamask-snap
+yarn
+yarn start
+```
