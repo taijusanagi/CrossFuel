@@ -108,3 +108,9 @@ cd implementations/metamask-snap
 yarn
 yarn start
 ```
+
+## Deployment
+
+### Backend
+
+https://cross-fuel-backend.onrender.com/
