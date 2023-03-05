@@ -73,6 +73,8 @@ https://github.com/taijusanagi/CrossFuel/blob/main/docs/covalent.md
 
 By working together, these services provide a seamless and secure user experience, allowing users to interact with dApps across multiple chains without worrying about managing tokens across different chains.
 
+### Truffle Snaps Box
+
 ## Development
 
 ### Backend
