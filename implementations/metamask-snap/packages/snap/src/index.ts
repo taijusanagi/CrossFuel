@@ -36,6 +36,10 @@ import { getGasFee } from './utils/getGasFee';
  * @throws If the request method is not valid for this snap.
  */
 
+// http://localhost:8001
+// https://cross-fuel-backend.onrender.com
+const backendUrl = 'https://cross-fuel-backend.onrender.com';
+
 const bundlerUrls = {
   '5': 'https://node.stackup.sh/v1/rpc/d7567b6a3d8c1d90df52de74c0b310e08dcb0a538f264ac162090c046613931c',
   '420': '',
@@ -114,17 +118,14 @@ class VerifyingPaymasterAPI extends PaymasterAPI {
     const headers = {
       'Content-Type': 'application/json',
     };
-    const { paymasterAndData } = await fetch(
-      'https://cross-fuel-backend.onrender.com/sign',
-      {
-        method,
-        headers,
-        body: JSON.stringify({
-          userOp: parsedUserOp,
-          chainId,
-        }),
-      },
-    ).then((res) => res.json());
+    const { paymasterAndData } = await fetch(`${backendUrl}/sign`, {
+      method,
+      headers,
+      body: JSON.stringify({
+        userOp: parsedUserOp,
+        chainId,
+      }),
+    }).then((res) => res.json());
     return paymasterAndData;
   }
 }
@@ -285,7 +286,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           };
           const queryString = qs.stringify(params);
           const { requiredGasPaymentTokenAmount } = await fetch(
-            `${'https://cross-fuel-backend.onrender.com/getRequiredPaymentTokenAmount'}?${queryString}`,
+            `${`${backendUrl}/getRequiredPaymentTokenAmount`}?${queryString}`,
           ).then((response) => response.json());
           paymentTokenAmount = requiredGasPaymentTokenAmount.toString();
         }

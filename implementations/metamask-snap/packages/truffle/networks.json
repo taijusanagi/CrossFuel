@@ -28,7 +28,6 @@
     "api": "covalent",
     "enabled": false
   },
-
   "421613": {
     "key": "arbitrum-goerli",
     "covalentKey": "",
@@ -36,6 +35,15 @@
     "env": "testnet",
     "rpc": "infura",
     "bridge": "axelar",
+    "enabled": false
+  },
+  "534353": {
+    "key": "scross-alpha-testnet",
+    "covalentKey": "",
+    "name": "Scroll Alpha Testnet",
+    "env": "testnet",
+    "rpc": "own",
+    "bridge": "native",
     "enabled": false
   }
 }

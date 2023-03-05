@@ -141,6 +141,16 @@ const NetworkNames = styled.div`
   line-height: 1.5;
 `;
 
+const WarningString = styled.div`
+  font-size: 12px;
+  color: #ff0000; /* original red color */
+  filter: brightness(80%); /* makes the color 80% as bright */
+  margin-bottom: 6px;
+`;
+
+const backendURLBase =
+  process.env.GATSBY_BACKEND_URL || 'http://localhost:8001';
+
 const isAxelarNativeToken = (address: string) => {
   return address === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 };
@@ -244,9 +254,9 @@ const Index = () => {
       return await sendAccountAbstraction(
         to,
         data,
-        '5', // for demo
-        '0x254d06f33bdc5b8ee05b2ea472107e300226659a', // for demo
-        true, // for demo
+        gasPaymentChainId,
+        gasPaymentToken,
+        isTenderlySimulationEnabled,
       );
     } catch (e) {
       console.error(e);
@@ -261,7 +271,7 @@ const Index = () => {
     }
 
     const relead = (chainId: string) => {
-      if (isChainId(chainId)) {
+      if (chainId === '80001') {
         setIsModalDisplayed(false);
         setConnectedNetwork(networks[chainId].name);
         // getExternalOwnedAccount().then((address) => setEOAWallet(address));
@@ -342,12 +352,18 @@ const Index = () => {
     }
 
     fetch(
-      `${'http://localhost:8001/getSupportedPaymentTokens'}?chainId=${gasPaymentChainId}`,
+      `${backendURLBase}/getSupportedPaymentTokens?chainId=${gasPaymentChainId}`,
     )
       .then((response) => response.json())
       .then((data) => {
         const _gasPaymentTokenList = data.map(({ address, name }: any) => {
-          return { value: address, label: name };
+          return {
+            value: address,
+            label: name,
+            disabled:
+              address.toLowerCase() !==
+              '0x254d06f33bdc5b8ee05b2ea472107e300226659a',
+          };
         });
         _gasPaymentTokenList.unshift({
           value: deployments.mockERC20Address,
@@ -488,6 +504,22 @@ const Index = () => {
                         {
                           value: '80001',
                           label: 'Polygon Mumbai',
+                          disabled: true,
+                        },
+                        {
+                          value: '',
+                          label: 'Optimism Goerli',
+                          disabled: true,
+                        },
+                        {
+                          value: '',
+                          label: 'Arbitrum Goerli',
+                          disabled: true,
+                        },
+                        {
+                          value: '',
+                          label: 'Scroll Alpha Testnet',
+                          disabled: true,
                         },
                       ]}
                     />
@@ -517,6 +549,11 @@ const Index = () => {
                     />
                   }
                 />
+                <WarningString>
+                  * You will receive a Mock Payment Token in your wallet
+                  automatically, and you should obtain Axelar USDC from the
+                  official faucet.
+                </WarningString>
               </>
             ),
             button: (
@@ -538,7 +575,6 @@ const Index = () => {
             title: 'Connect by Web3Wallet',
             others: (
               <>
-                {' '}
                 <Form
                   label="Input WalletConnect URL"
                   input={
@@ -564,6 +600,12 @@ const Index = () => {
           fullWidth
           disabled={!state.installedSnap}
         />
+        <WarningString>
+          * The Wallet Connect transaction is still unstable, so please use the
+          Demo - Claim MockSBT button instead. If you wish to try out the Wallet
+          Connect transaction, please use
+          https://react-dapp-v2-with-web3js.vercel.app/
+        </WarningString>
         <Notice>
           <p>
             CrossFuel is a payment system that simplifies gas fees for dApps on
@@ -576,13 +618,21 @@ const Index = () => {
       </CardContainer>
       {isModalDisplayed && (
         <Modal title="Network Error">
-          The current network is not supported.
-          <ModalSubTitle>Supported Network</ModalSubTitle>
+          The current network is not supported. Please Switch to Polygon Mumbai.
+          <ModalSubTitle>Note:</ModalSubTitle>
           <NetworkNames>
+            <>Contracts are deployed</>
+            <br />
+            <br />
             {Object.values(networks)
-              .filter(({ enabled }) => enabled)
-              .map((d) => d.name)
+              .map((d) => `- ${d.name}`)
               .join('\n')}
+            <br />
+            <br />
+            <>
+              However, only gas payment on Goerli and execution on Polygon
+              Mumbai have been tested sufficiently for the demo.
+            </>
           </NetworkNames>
         </Modal>
       )}

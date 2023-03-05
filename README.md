@@ -115,7 +115,7 @@ yarn start
 
 https://cross-fuel-backend.onrender.com/
 
-### Fronten
+### Frontend
 
 https://cross-fuel.vercel.app/
 

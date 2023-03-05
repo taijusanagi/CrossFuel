@@ -4,6 +4,7 @@ import styled from 'styled-components';
 type Option = {
   value: string;
   label: string;
+  disabled?: boolean;
 };
 
 type SelectProps = {
@@ -25,16 +26,16 @@ const Option = styled.option``;
 
 const SelectWrapper = styled.div``;
 
-export const Select = ({
-  options,
-  onChange,
-  disabled = false,
-}: SelectProps) => {
+export const Select = ({ options, onChange }: SelectProps) => {
   return (
     <SelectWrapper>
-      <SelectBox disabled={disabled} onChange={onChange}>
+      <SelectBox onChange={onChange}>
         {options.map((option) => (
-          <Option key={option.value} value={option.value}>
+          <Option
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+          >
             {option.label}
           </Option>
         ))}
