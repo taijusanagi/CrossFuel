@@ -266,8 +266,8 @@ const Index = () => {
 
   useEffect(() => {
     console.log('load aa wallet test');
-    const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
-    if (!isFlaskConnected) {
+    // const isFlaskConnected = shouldDisplayReconnectButton(state.installedSnap);
+    if (!state.installedSnap) {
       return;
     }
     console.log('pass flask test');
@@ -511,17 +511,17 @@ const Index = () => {
                           disabled: true,
                         },
                         {
-                          value: '',
+                          value: 'o',
                           label: 'Optimism Goerli',
                           disabled: true,
                         },
                         {
-                          value: '',
+                          value: 'a',
                           label: 'Arbitrum Goerli',
                           disabled: true,
                         },
                         {
-                          value: '',
+                          value: 's',
                           label: 'Scroll Alpha Testnet',
                           disabled: true,
                         },
