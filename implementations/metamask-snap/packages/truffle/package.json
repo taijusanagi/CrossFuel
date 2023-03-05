@@ -6,6 +6,7 @@
   "scripts": {
     "build": "truffle compile",
     "deploy": "truffle compile && node ./scripts/deploy-all-contracts.js",
+    "deploy-scroll": "node ./scripts/scroll-deploy.js",
     "node": "node scripts/ganache.js",
     "test": "truffle test",
     "test-with-ganache-forked-chain": "WITH_FORKED_GANACHE_FORKED_CHAIN=true truffle test"
