@@ -3,7 +3,8 @@ import { GetSnapsResponse, Snap } from '../types';
 
 import deployments from '../../../truffle/deployments.json';
 
-const backendURLBase = process.env.BACKEND_URL || 'http://localhost:8001';
+const backendURLBase =
+  process.env.GATSBY_BACKEND_URL || 'http://localhost:8001';
 
 /**
  * Get the installed snaps in MetaMask.

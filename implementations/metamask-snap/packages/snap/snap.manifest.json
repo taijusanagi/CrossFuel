@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CrossFuel is a seamless cross-chain gas payment service infrastructure that leverages Account Abstraction.",
   "proposedName": "CrossFuel",
   "repository": {
@@ -7,7 +7,7 @@
     "url": "https://github.com/taijusanagi/CrossFuel.git"
   },
   "source": {
-    "shasum": "QVL4JB4oxQDwJ3OkNy+RcKr2s7KXJloinoESWXLToGs=",
+    "shasum": "Z43yFflvAuUuAemMK1TZqDyIgZqYEzwrtGYtaM1QJIU=",
     "location": {
       "npm": {
         "filePath": "dist/bundle.js",

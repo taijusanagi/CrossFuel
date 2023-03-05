@@ -114,14 +114,17 @@ class VerifyingPaymasterAPI extends PaymasterAPI {
     const headers = {
       'Content-Type': 'application/json',
     };
-    const { paymasterAndData } = await fetch('http://localhost:8001/sign', {
-      method,
-      headers,
-      body: JSON.stringify({
-        userOp: parsedUserOp,
-        chainId,
-      }),
-    }).then((res) => res.json());
+    const { paymasterAndData } = await fetch(
+      'https://cross-fuel-backend.onrender.com/sign',
+      {
+        method,
+        headers,
+        body: JSON.stringify({
+          userOp: parsedUserOp,
+          chainId,
+        }),
+      },
+    ).then((res) => res.json());
     return paymasterAndData;
   }
 }
@@ -282,7 +285,7 @@ export const onRpcRequest: OnRpcRequestHandler = async ({
           };
           const queryString = qs.stringify(params);
           const { requiredGasPaymentTokenAmount } = await fetch(
-            `${'http://localhost:8001/getRequiredPaymentTokenAmount'}?${queryString}`,
+            `${'https://cross-fuel-backend.onrender.com/getRequiredPaymentTokenAmount'}?${queryString}`,
           ).then((response) => response.json());
           paymentTokenAmount = requiredGasPaymentTokenAmount.toString();
         }
