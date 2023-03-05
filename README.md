@@ -35,9 +35,11 @@ Metamask Snap is an extension feature of Metamask that adds the Account Abstract
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/metamask-snap.md
 
-### Infura & Truffle
+### Infura
 
 Our team utilizes Infura, a multichain node service, for deploying multichain contracts, including the Account Abstraction infrastructure contract, which we are deploying to each chain. Meanwhile, Truffle, a core development tool, provides a starter kit for Metamask Snap and smart contract.
+
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/infura.md
 
 ### Defender
 
