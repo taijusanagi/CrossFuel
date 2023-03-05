@@ -27,3 +27,25 @@ https://github.com/taijusanagi/CrossFuel/blob/main/implementations/metamask-snap
 ## Tested Transaction
 
 https://polygonscan.com/tx/0xc7065ea6808451eae9dcd327e14d317b3ce1be9e151500f3b9a4156e1165325f
+
+## Get Transaction Hash from Event
+
+![1inch-resolve](./1inch-resolve.png)
+
+## How We Utilize the 1inch fusion
+
+![1inch-model](./1inch-model.png)
+
+Swapping and bridging tokens through platforms like 1inch and CrossFuel can offer numerous benefits for users in the decentralized finance (DeFi) ecosystem. Here are some additional benefits:
+
+Increased Liquidity: By swapping tokens, users can increase liquidity for both tokens in the DeFi ecosystem. This makes it easier for users to buy and sell their preferred tokens without having to worry about low liquidity.
+
+Lower Fees: Swapping tokens through DeFi platforms typically incurs lower fees than traditional centralized exchanges, which can be especially beneficial for small transactions.
+
+Access to a Wide Range of Tokens: DeFi platforms like 1inch and CrossFuel offer access to a wide range of tokens, including those that may not be available on centralized exchanges. This opens up new opportunities for investors and traders.
+
+Increased Security: Decentralized exchanges are often considered more secure than centralized exchanges because they do not store user funds in a centralized location. Instead, funds are held in smart contracts, which can only be accessed through a user's private key.
+
+Gas-Less Architecture: CrossFuel's gas-less architecture can significantly reduce transaction fees for users. This can be especially beneficial during times of high network congestion when gas fees on other DeFi platforms can be prohibitively expensive.
+
+Overall, swapping and bridging tokens through DeFi platforms can offer a range of benefits for users, including increased liquidity, lower fees, access to a wider range of tokens, increased security, and reduced transaction fees through gas-less architecture.
