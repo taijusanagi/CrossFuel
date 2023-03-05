@@ -79,17 +79,21 @@ We utilized Truffle Snaps Box to create a Metamask boilerplate
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/truffle-snaps-box.md
 
-### Polygon
+### Polygon as Payment Layer
 
 Including Polygon in our platform is crucial as it has one of the largest user bases among blockchain networks. With Polygon integrated, users can pay gas fees in Polygon for other chains such as zkEVM, making it a convenient payment layer for many users.
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/polygon.md
 
+### Expand to L2
+
+We are planning to incorporate our Account Abstraction infrastructure onto Scroll. This is because Scroll is transitioning to zk EVM, which lacks native support for Account Abstraction. By deploying our infrastructure on Scroll, we can bridge this gap.
+
+https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
+
 ### Others
 
 https://github.com/taijusanagi/CrossFuel/blob/main/docs/one-inch.md
-
-https://github.com/taijusanagi/CrossFuel/blob/main/docs/scroll.md
 
 ## Development
 
