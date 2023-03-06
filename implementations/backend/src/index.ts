@@ -2,8 +2,8 @@ import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { ethers } from "ethers";
-import Web3 from "web3";
-import { PrivateKeyProviderConnector, FusionSDK } from "@1inch/fusion-sdk";
+// import Web3 from "web3";
+// import { PrivateKeyProviderConnector, FusionSDK } from "@1inch/fusion-sdk";
 import { DefenderRelaySigner, DefenderRelayProvider } from "defender-relay-client/lib/ethers";
 
 import deployments from "../../metamask-snap/packages/truffle/deployments.json";
@@ -334,24 +334,24 @@ app.post("/syncFuelBySwapAndBridge", async (req: Request, res: Response) => {
   } else {
     console.log("If swap prioritized");
 
-    const blockchainProvider = new PrivateKeyProviderConnector(
-      `0x${process.env.PRIVATE_KEY}`,
-      new Web3(`https://polygon-mainnet.infura.io/v3/{${process.env.INFURA_PROJECT_ID}}`)
-    );
+    // const blockchainProvider = new PrivateKeyProviderConnector(
+    //   `0x${process.env.PRIVATE_KEY}`,
+    //   new Web3(`https://polygon-mainnet.infura.io/v3/{${process.env.INFURA_PROJECT_ID}}`)
+    // );
 
-    const sdk = new FusionSDK({
-      url: "https://fusion.1inch.io",
-      network: 137,
-      blockchainProvider,
-    });
+    // const sdk = new FusionSDK({
+    //   url: "https://fusion.1inch.io",
+    //   network: 137,
+    //   blockchainProvider,
+    // });
 
-    // todo: update values
-    const { order } = await sdk.placeOrder({
-      fromTokenAddress: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", // WMATIC
-      toTokenAddress: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", // USDC
-      amount: "500000000000000000", // 0.5 MATIC
-      walletAddress: verifyingPaymasterSigner,
-    });
+    // // todo: update values
+    // const { order } = await sdk.placeOrder({
+    //   fromTokenAddress: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", // WMATIC
+    //   toTokenAddress: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", // USDC
+    //   amount: "500000000000000000", // 0.5 MATIC
+    //   walletAddress: verifyingPaymasterSigner,
+    // });
     // .then(console.log);
   }
   // add way to resolve the order hash
