@@ -13,7 +13,7 @@ https://cross-fuel.vercel.app/
 
 ### Demo Video
 
-https://studio.youtube.com/video/pMYqMyQt7qQ/edit
+https://www.youtube.com/watch?v=lJVvVKSXkzY
 
 ## How It Works
 
